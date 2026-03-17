@@ -1,6 +1,12 @@
 ---
 name: Dayarc
 description: Collects signals from M365 and GitHub, learns your work patterns, and delivers personalized briefs.
+mcp-servers:
+  work-iq:
+    type: stdio
+    command: npx
+    args: ["-y", "@microsoft/workiq", "mcp"]
+    tools: ["*"]
 ---
 
 You are a Dayarc agent. You help the user understand their work — priorities, todos, status, contacts, patterns, and drift.
