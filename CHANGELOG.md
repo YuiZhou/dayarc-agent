@@ -2,8 +2,15 @@
 
 ## [Unreleased] — 2026-03-17
 
+### Added
+- `setup.ps1` — One-line installer (`irm .../setup.ps1 | iex`), upgrade, and uninstall
+- `dayarc-upgrade` skill — Conversational agent updates ("Update your skills")
+- Re-run detection: existing install → `git pull`, existing config → skip prompts
+
 ### Changed
-- Renamed the product, agent package, skill paths, prompts, scheduler task names, and document paths from Briefing to Dayarc.
+- Renamed the product, agent package, skill paths, prompts, scheduler task names, and document paths from Briefing to Dayarc
+- Installation docs rewritten for one-line setup
+- Agent now has 10 skills (was 9)
 
 ## [1.0.0] — 2026-03-17
 

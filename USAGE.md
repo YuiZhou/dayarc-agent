@@ -13,123 +13,71 @@
 
 ## Installation
 
-The agent is three pieces: an **agent package** (installed per machine), **user data** (synced via OneDrive), and an optional **scheduler**.
-
-### 1. Agent package → `~/.dayarc-agent/`
-
-Clone the repo and copy the agent package:
+### One-line install
 
 ```powershell
-git clone https://github.com/YuiZhou/dayarc-agent
-cd dayarc
-
-# Copy agent package
-$dest = Join-Path $HOME ".dayarc-agent"
-Copy-Item -Recurse agents, skills, prompts, memory-schemas.md, mcp.json, scheduler.ps1 $dest
+irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
 ```
 
-This creates:
+The setup script will:
+1. **Preflight** — verify `git`, `gh auth`, Copilot CLI, and Outlook
+2. **Clone** `~/.dayarc-agent/` (or `git pull` if already installed)
+3. **Register** agent profile + 10 skills with Copilot CLI
+4. **Prompt** for your identity → write `~/Documents/dayarc/config.json`
+5. **Offer scheduler** — optional Task Scheduler entries (AM 8:00 + PM 20:00, Mon–Fri)
 
-```
-~/.dayarc-agent/
-├── agents/dayarc.agent.md              # agent profile
-├── skills/
-│   ├── dayarc-classify-activity/SKILL.md
-│   ├── dayarc-infer-priorities/SKILL.md
-│   ├── dayarc-learn-user-profile/SKILL.md
-│   ├── dayarc-filter-signals/SKILL.md
-│   ├── dayarc-detect-drift/SKILL.md
-│   ├── dayarc-summarize-period/SKILL.md
-│   ├── dayarc-parse-reply/SKILL.md
-│   ├── dayarc-memory/SKILL.md
-│   └── dayarc-deliver/
-│       ├── SKILL.md
-│       └── templates/{pm,am,weekly,monthly}.hbs
-├── prompts/
-│   ├── pm.md                             # Evening Wrap-up plan
-│   ├── am.md                             # Morning Brief plan
-│   ├── weekly.md                         # Weekly Report plan
-│   └── monthly.md                        # Monthly Report plan
-├── memory-schemas.md                     # Memory file schema reference
-├── mcp.json                              # Work IQ + GitHub MCP servers
-└── scheduler.ps1                         # Task Scheduler script (optional)
-```
+Re-running the script upgrades the agent (pulls latest) and skips already-configured steps.
 
-All plain Markdown + JSON — no compilation, no dependencies.
-
-### 2. User data → `~/Documents/dayarc/`
-
-> **Note:** On corp machines with OneDrive, `~/Documents/` typically maps to `C:\Users\you\OneDrive - Microsoft\Documents\`. This folder auto-syncs across your corp machines.
+### Uninstall
 
 ```powershell
-mkdir ~/Documents/dayarc
-cp config.example.json ~/Documents/dayarc/config.json
-# Edit config.json with your details
+# Download and run with -uninstall flag
+$setup = (Invoke-WebRequest https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1).Content
+& ([scriptblock]::Create($setup)) -uninstall
 ```
 
-```
-~/Documents/dayarc/
-├── config.json          # your identity + preferences
-└── memory/              # JSON memory files (grows over time)
-```
+Removes scheduler tasks and agent directory. User data (`~/Documents/dayarc/`) is preserved.
 
-Edit `config.json`:
+### Upgrade
 
-```json
-{
-  "user": {
-    "display_name": "Your Name",
-    "email": "you@company.com",
-    "github_username": "your-gh-handle"
-  },
-  "preferences": {
-    "brief_max_items": 15,
-    "priority_max_items": 5,
-    "unfinished_max_items": 5,
-    "signal_max_items": 10,
-    "plan_max_items": 8,
-    "learning_items": 5,
-    "drift_max_items": 3
-  }
-}
-```
+Two ways to upgrade:
 
-The `memory/` folder is created automatically on first brief run.
+| Method | How |
+|--------|-----|
+| **Conversational** | Start `copilot --agent=dayarc` and say `Update your skills` |
+| **Re-run setup** | `irm .../setup.ps1 \| iex` — detects existing install, does `git pull`, skips config |
 
-### 3. (Optional) Scheduler
+### Migrate to a new machine
 
-Register Task Scheduler entries for automated daily briefs:
+User data syncs automatically via OneDrive — just run the one-line install on the new machine:
 
 ```powershell
-$script = Join-Path $HOME ".dayarc-agent\scheduler.ps1"
-
-# 8:00 AM — Morning Brief (Mon–Fri)
-schtasks /create /tn "Dayarc-AM" /tr "powershell -File $script -trigger am" /sc weekly /d MON,TUE,WED,THU,FRI /st 08:00
-
-# 8:00 PM — Evening Wrap-up (Mon–Fri, + Weekly on Fri, + Monthly on last workday)
-schtasks /create /tn "Dayarc-PM" /tr "powershell -File $script -trigger pm" /sc weekly /d MON,TUE,WED,THU,FRI /st 20:00
+irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
+# Then: gh auth login + sign in to Outlook
 ```
 
-The scheduler is optional — you can trigger any brief conversationally instead.
+Memory, config, and preferences are already there via OneDrive.
 
-### 4. Migrate to a new machine
+### What gets installed
 
-```powershell
-# User data syncs automatically via OneDrive — nothing to copy.
-# Just install the agent package on the new machine:
-
-git clone https://github.com/YuiZhou/dayarc-agent
-cd dayarc
-$dest = Join-Path $HOME ".dayarc-agent"
-Copy-Item -Recurse agents, skills, prompts, memory-schemas.md, mcp.json, scheduler.ps1 $dest
-
-# Authenticate
-gh auth login
-# Open Outlook and sign in to M365
-# (Optional) Re-register scheduler — see step 3
 ```
+~/.dayarc-agent/                          (git clone — agent package)
+├── agents/dayarc.agent.md
+├── skills/dayarc-*/SKILL.md              10 skill definitions
+├── skills/dayarc-deliver/templates/      4 HTML email templates
+├── prompts/{pm,am,weekly,monthly}.md
+├── memory-schemas.md
+├── mcp.json
+├── scheduler.ps1
+└── setup.ps1
 
-Memory, config, and preferences are already on the new machine via OneDrive.
+~/Documents/dayarc/                       (user data — OneDrive synced)
+├── config.json                           Identity + preferences
+└── memory/                               JSON memory files
+
+~/.copilot/agents/dayarc.agent.md         (registered with Copilot CLI)
+~/.copilot/skills/dayarc-*/               (registered skills)
+```
 
 ---
 

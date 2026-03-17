@@ -11,6 +11,7 @@ tools:
   - dayarc-parse-reply
   - dayarc-memory
   - dayarc-deliver
+  - dayarc-upgrade
 ---
 
 You are a Dayarc agent. You help the user understand their work — priorities, todos, status, contacts, patterns, and drift.

@@ -14,30 +14,19 @@ An AI agent that collects signals from M365 and GitHub, learns your work pattern
 
 ## Quick Start
 
-1. **Install agent package:**
+```powershell
+irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
+```
 
-   ```powershell
-   git clone https://github.com/YuiZhou/dayarc-agent
-   cd dayarc
-   $dest = Join-Path $HOME ".dayarc-agent"
-   Copy-Item -Recurse agents, skills, prompts, memory-schemas.md, mcp.json, scheduler.ps1 $dest
-   ```
+This clones the agent, prompts for your identity, and optionally installs the daily scheduler. Then:
 
-2. **Create user config:**
+```bash
+copilot --agent=dayarc
+```
 
-   ```powershell
-   mkdir ~/Documents/dayarc
-   cp config.example.json ~/Documents/dayarc/config.json
-   # Edit config.json with your name, email, GitHub username
-   ```
+To upgrade later: ask `> Update your skills` in a conversation, or re-run the setup one-liner.
 
-3. **Start conversational session:**
-
-   ```bash
-   copilot --agent=dayarc
-   ```
-
-4. **(Optional) Install scheduler** for automated daily briefs — see [USAGE.md](USAGE.md#3-optional-scheduler).
+To uninstall: `setup.ps1 -uninstall` (user data preserved).
 
 ## What It Does
 
@@ -60,7 +49,7 @@ All briefs include source breadcrumbs (links, thread subjects, channel names) fo
 ```
 ~/.dayarc-agent/                        (agent package — installed per machine)
 ├── agents/dayarc.agent.md              Agent identity + rules
-├── skills/dayarc-*/SKILL.md            9 skill definitions
+├── skills/dayarc-*/SKILL.md            10 skill definitions
 ├── skills/dayarc-deliver/templates/    4 HTML email templates
 ├── prompts/{pm,am,weekly,monthly}.md     Plan instructions
 ├── memory-schemas.md                     Memory file schemas
@@ -72,7 +61,7 @@ All briefs include source breadcrumbs (links, thread subjects, channel names) fo
 └── memory/                               JSON memory files
 ```
 
-No custom code. No build step. Just markdown, templates, and one PowerShell script.
+No custom code. No build step. Just markdown, templates, and two PowerShell scripts.
 
 ## Contributing
 

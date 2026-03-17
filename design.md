@@ -9,7 +9,7 @@ Copilot CLI is the agent. Three portable layers:
 ```
 Agent Package (installed)                      User Data ~/Documents/dayarc/ (portable, OneDrive-synced)
 ┌──────────────────────────────────┐           ┌──────────────────────────────┐
-│  skills/       9 skill defs      │           │  memory/    JSON files       │
+│  skills/       10 skill defs     │           │  memory/    JSON files       │
 │  prompts/      4 plan files      │           │  config.json identity+prefs  │
 │  templates/    4 HTML templates  │           └──────────────────────────────┘
 │  memory-schemas.md               │
@@ -25,7 +25,19 @@ Agent Package (installed)                      User Data ~/Documents/dayarc/ (po
 | Memory | JSON in `~/Documents/dayarc/memory/` | — |
 | Email | Outlook COM via shell | Signed-in Outlook |
 
-**Portability:** User data lives in `~/Documents/dayarc/` — auto-synced across corp machines via OneDrive/SharePoint. Install agent on new machine → `gh auth login` → works. Agent code + user data = Markdown + JSON (cross-platform). Only scheduler + Outlook COM are platform-specific.
+**Portability:** User data lives in `~/Documents/dayarc/` — auto-synced across corp machines via OneDrive/SharePoint. Install agent on new machine → run `irm .../setup.ps1 | iex` → `gh auth login` → works. Agent code + user data = Markdown + JSON (cross-platform). Only scheduler + Outlook COM are platform-specific.
+
+## 1b. Install & Upgrade
+
+**Install:** `irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex`
+
+`setup.ps1` flow: preflight (git, gh auth, Copilot CLI, Outlook) → clone `~/.dayarc-agent/` → register with `~/.copilot/` → prompt config → offer scheduler → done.
+
+**Upgrade (conversational):** User says "Update your skills" → `dayarc-upgrade` skill runs `git fetch` + `git pull --ff-only` in `~/.dayarc-agent/`, copies updated files to `~/.copilot/`.
+
+**Upgrade (re-run setup):** `irm .../setup.ps1 | iex` detects existing `.git` → `git pull`, existing `config.json` → skip prompts, existing scheduler → skip.
+
+**Uninstall:** `setup.ps1 -uninstall` removes scheduler + agent dir. User data preserved.
 
 ## 2. Execution Modes
 
@@ -96,6 +108,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 | `parse_reply` | `{ corrections[{ action, target, detail }] }` | Extract corrections from reply text |
 | `dayarc-memory` | Read/write JSON | File I/O for memory directory |
 | `dayarc-deliver` | HTML email or terminal | Render template + send via Outlook COM |
+| `dayarc-upgrade` | Status message | Check for / apply agent updates from GitHub |
 
 ## 5. Memory
 
