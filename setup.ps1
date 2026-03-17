@@ -236,6 +236,11 @@ if (Test-Path $configFile) {
             learning_items      = 5
             drift_max_items     = 3
         }
+        scheduler = @{
+            enabled  = $false
+            am_time  = "08:00"
+            pm_time  = "20:00"
+        }
     }
 
     # Ensure directory exists (handles edge cases like OneDrive paths)
@@ -271,6 +276,17 @@ if ($existingAM -and $existingPM) {
         Register-ScheduledTask -TaskName "Dayarc-PM" -Action $action_pm -Trigger $trigger_pm -Settings $settings -Description "Dayarc evening brief" | Out-Null
 
         Write-Ok "Scheduled: Dayarc-AM (8:00) + Dayarc-PM (20:00), Mon-Fri"
+
+        # Mark scheduler as enabled in config.json
+        if (Test-Path $configFile) {
+            $cfg = Get-Content $configFile -Raw | ConvertFrom-Json
+            if (-not $cfg.scheduler) {
+                $cfg | Add-Member -NotePropertyName "scheduler" -NotePropertyValue ([PSCustomObject]@{ enabled = $true; am_time = "08:00"; pm_time = "20:00" })
+            } else {
+                $cfg.scheduler.enabled = $true
+            }
+            $cfg | ConvertTo-Json -Depth 3 | Set-Content $configFile -Encoding UTF8
+        }
     } else {
         Write-Skip "Skipped — run setup again anytime to add it"
     }
