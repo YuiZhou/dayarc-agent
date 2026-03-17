@@ -172,15 +172,43 @@ Write-Ok "$skillCount skills → ~/.copilot/skills/"
 
 Write-Step "User data → $dataDir"
 
-if (-not (Test-Path $dataDir)) {
+# Detect OneDrive — Documents folder outside $HOME\Documents means OneDrive redirect
+$isOneDrive = $docsDir -ne (Join-Path $HOME "Documents")
+
+if (Test-Path $dataDir) {
+    Write-Skip "Data directory already exists"
+} elseif ($isOneDrive) {
+    # OneDrive: folder may still be syncing from another machine.
+    # Creating it here would cause OneDrive to produce a conflict copy (dayarc-<computername>).
+    # Wait for sync instead.
+    Write-Host ""
+    Write-Host "  OneDrive detected: $docsDir" -ForegroundColor DarkGray
+    Write-Host "  The folder ~/Documents/dayarc/ does not exist yet." -ForegroundColor Yellow
+    Write-Host ""
+    $isFirst = Read-Host "    Is this the first machine you're setting up Dayarc on? [y/N]"
+    if ($isFirst -match '^[Yy]') {
+        New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $dataDir "memory") -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $dataDir "memory\daily") -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $dataDir "memory\runs") -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $dataDir "memory\weekly-archive") -Force | Out-Null
+        Write-Ok "Created data directories"
+    } else {
+        Write-Host ""
+        Write-Host "  Wait for OneDrive to sync the folder from your other machine," -ForegroundColor Yellow
+        Write-Host "  then re-run this setup. The folder will appear at:" -ForegroundColor Yellow
+        Write-Host "    $dataDir" -ForegroundColor White
+        Write-Host ""
+        return
+    }
+} else {
+    # No OneDrive — safe to create immediately
     New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $dataDir "memory") -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $dataDir "memory\daily") -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $dataDir "memory\runs") -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $dataDir "memory\weekly-archive") -Force | Out-Null
     Write-Ok "Created data directories"
-} else {
-    Write-Skip "Data directory already exists"
 }
 
 if (Test-Path $configFile) {
@@ -189,8 +217,8 @@ if (Test-Path $configFile) {
     Write-Host ""
     Write-Host "  Let's set up your identity:" -ForegroundColor White
 
-    $displayName = Read-Host "    Display name (e.g. Yu Zhou)"
-    $email       = Read-Host "    Email address"
+    $displayName = Read-Host "    Full name as it appears in @mentions (e.g. Yu Zhou, not a nickname)"
+    $email       = Read-Host "    Work email address"
     $ghUser      = Read-Host "    GitHub username"
 
     $config = @{
@@ -210,6 +238,11 @@ if (Test-Path $configFile) {
         }
     }
 
+    # Ensure directory exists (handles edge cases like OneDrive paths)
+    $configDir = Split-Path $configFile -Parent
+    if (-not (Test-Path $configDir)) {
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+    }
     $config | ConvertTo-Json -Depth 3 | Set-Content $configFile -Encoding UTF8
     Write-Ok "Wrote config.json"
 }
