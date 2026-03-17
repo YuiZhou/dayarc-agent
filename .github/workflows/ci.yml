@@ -1,0 +1,79 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required files exist
+        run: |
+          echo "Checking required files..."
+          files=(
+            "agents/dayarc.agent.md"
+            "skills/dayarc-classify-activity/SKILL.md"
+            "skills/dayarc-infer-priorities/SKILL.md"
+            "skills/dayarc-learn-user-profile/SKILL.md"
+            "skills/dayarc-filter-signals/SKILL.md"
+            "skills/dayarc-detect-drift/SKILL.md"
+            "skills/dayarc-summarize-period/SKILL.md"
+            "skills/dayarc-parse-reply/SKILL.md"
+            "skills/dayarc-memory/SKILL.md"
+            "skills/dayarc-deliver/SKILL.md"
+            "skills/dayarc-deliver/templates/pm.hbs"
+            "skills/dayarc-deliver/templates/am.hbs"
+            "skills/dayarc-deliver/templates/weekly.hbs"
+            "skills/dayarc-deliver/templates/monthly.hbs"
+            "prompts/pm.md"
+            "prompts/am.md"
+            "prompts/weekly.md"
+            "prompts/monthly.md"
+            "memory-schemas.md"
+            "mcp.json"
+            "scheduler.ps1"
+            "config.example.json"
+            "LICENSE"
+            "README.md"
+          )
+          missing=0
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "❌ MISSING: $f"
+              missing=$((missing + 1))
+            else
+              echo "✅ $f"
+            fi
+          done
+          if [ $missing -gt 0 ]; then
+            echo "::error::$missing required files are missing"
+            exit 1
+          fi
+          echo "All required files present."
+
+      - name: Verify no TypeScript artifacts
+        run: |
+          echo "Checking for stale TypeScript artifacts..."
+          if find . -name "*.ts" -not -path "./.git/*" | grep -q .; then
+            echo "::error::Found .ts files — these should not exist"
+            find . -name "*.ts" -not -path "./.git/*"
+            exit 1
+          fi
+          for dir in node_modules dist; do
+            if [ -d "$dir" ]; then
+              echo "::error::Found $dir directory — should not exist"
+              exit 1
+            fi
+          done
+          echo "No TypeScript artifacts found."
+
+      - name: Validate JSON files
+        run: |
+          echo "Validating JSON..."
+          python3 -c "import json; json.load(open('mcp.json'))" && echo "✅ mcp.json"
+          python3 -c "import json; json.load(open('config.example.json'))" && echo "✅ config.example.json"
+          python3 -c "import json; json.load(open('package.json'))" && echo "✅ package.json"
+          echo "All JSON files valid."

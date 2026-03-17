@@ -1,0 +1,16 @@
+{
+  "user": {
+    "display_name": "Your Name",
+    "email": "you@example.com",
+    "github_username": "your-handle"
+  },
+  "preferences": {
+    "brief_max_items": 15,
+    "priority_max_items": 5,
+    "unfinished_max_items": 5,
+    "signal_max_items": 10,
+    "plan_max_items": 8,
+    "learning_items": 5,
+    "drift_max_items": 3
+  }
+}

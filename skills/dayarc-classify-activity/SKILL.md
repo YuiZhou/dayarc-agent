@@ -1,0 +1,26 @@
+---
+name: Classify Activity
+description: Group raw activity signals into thematic clusters with effort estimates.
+---
+
+## Input
+Raw signals from Work IQ + GitHub for the day.
+
+## Output (JSON)
+```json
+{
+  "groups": [{
+    "theme": "auth migration",
+    "activities": [{ "description": "Reviewed token refresh PR #1234", "source_breadcrumb": "github.com/org/repo/pull/1234" }],
+    "effort": "high"
+  }]
+}
+```
+
+## Instructions
+1. Scan all signals from the day.
+2. Cluster by work theme (e.g., "auth migration", "team coordination", "code review").
+3. Within each cluster, write one sentence per activity describing *what* was done.
+4. Every activity MUST have a `source_breadcrumb` — a link, thread subject, or channel name. If unavailable: "source unavailable".
+5. Estimate effort per cluster: "high", "medium", or "low" relative to the day.
+6. Max 15 activities total across all groups.

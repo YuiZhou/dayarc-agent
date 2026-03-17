@@ -1,0 +1,20 @@
+{
+  "name": "dayarc-agent",
+  "version": "1.0.0",
+  "description": "An AI agent that collects signals from M365 and GitHub, learns your work patterns, and delivers personalized email briefs — powered by Copilot CLI.",
+  "license": "MIT",
+  "author": "Microsoft Corporation",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YuiZhou/dayarc-agent.git"
+  },
+  "keywords": [
+    "dayarc",
+    "productivity",
+    "ai-agent",
+    "m365",
+    "github",
+    "copilot",
+    "copilot-cli"
+  ]
+}
