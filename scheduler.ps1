@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Dayarc — Scheduler Script
 .DESCRIPTION
@@ -23,7 +23,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $agentDir = Join-Path $HOME ".dayarc-agent"
-$profileDir = Join-Path $HOME "Documents" "dayarc"
+$profileDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "dayarc"
 
 function Is-LastWorkday {
     param([DateTime]$date)
@@ -39,29 +39,32 @@ $today = Get-Date
 
 Write-Host "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd'))"
 
+Push-Location $profileDir
+
 if ($trigger -eq "am") {
     Write-Host "[Dayarc] Running AM brief..."
-    copilot --agent=dayarc --prompt "$agentDir\prompts\am.md" --cwd $profileDir
+    copilot --agent=dayarc --prompt "$agentDir\prompts\am.md"
 }
 
 if ($trigger -eq "pm") {
     Write-Host "[Dayarc] Running PM brief..."
-    copilot --agent=dayarc --prompt "$agentDir\prompts\pm.md" --cwd $profileDir
+    copilot --agent=dayarc --prompt "$agentDir\prompts\pm.md"
 
     if ($today.DayOfWeek -eq [DayOfWeek]::Friday) {
-        Write-Host "[Dayarc] Friday — running Weekly brief..."
-        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md" --cwd $profileDir
+        Write-Host "[Dayarc] Friday -- running Weekly brief..."
+        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md"
 
         if (Is-LastWorkday $today) {
-            Write-Host "[Dayarc] Last workday of month — running Monthly brief..."
-            copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md" --cwd $profileDir
+            Write-Host "[Dayarc] Last workday of month -- running Monthly brief..."
+            copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md"
         }
-    }
-    elseif (Is-LastWorkday $today) {
-        Write-Host "[Dayarc] Last workday of month (non-Friday) — running Weekly + Monthly..."
-        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md" --cwd $profileDir
-        copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md" --cwd $profileDir
+    } elseif (Is-LastWorkday $today) {
+        Write-Host "[Dayarc] Last workday of month (non-Friday) -- running Weekly + Monthly..."
+        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md"
+        copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md"
     }
 }
+
+Pop-Location
 
 Write-Host "[Dayarc] Done."
