@@ -13,9 +13,7 @@
     "learning_items": 5,
     "drift_max_items": 3
   },
-  "scheduler": {
-    "enabled": false,
-    "am_time": "08:00",
-    "pm_time": "20:00"
-  }
+  "scheduler": [
+    { "machine": "DESKTOP-ABC", "am_time": "08:00", "pm_time": "20:00" }
+  ]
 }
