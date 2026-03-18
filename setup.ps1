@@ -236,11 +236,13 @@ if (Test-Path $configFile) {
             learning_items      = 5
             drift_max_items     = 3
         }
-        scheduler = @{
-            enabled  = $false
-            am_time  = "08:00"
-            pm_time  = "20:00"
-        }
+        scheduler = @(
+            @{
+                machine = ""
+                am_time = "08:00"
+                pm_time = "20:00"
+            }
+        )
     }
 
     # Ensure directory exists (handles edge cases like OneDrive paths)
@@ -277,13 +279,20 @@ if ($existingAM -and $existingPM) {
 
         Write-Ok "Scheduled: Dayarc-AM (8:00) + Dayarc-PM (20:00), Mon-Fri"
 
-        # Mark scheduler as enabled in config.json
+        # Record this machine's scheduler entry in config.json
         if (Test-Path $configFile) {
             $cfg = Get-Content $configFile -Raw | ConvertFrom-Json
+            $entry = [PSCustomObject]@{ machine = $env:COMPUTERNAME; am_time = "08:00"; pm_time = "20:00" }
             if (-not $cfg.scheduler) {
-                $cfg | Add-Member -NotePropertyName "scheduler" -NotePropertyValue ([PSCustomObject]@{ enabled = $true; am_time = "08:00"; pm_time = "20:00" })
+                $cfg | Add-Member -NotePropertyName "scheduler" -NotePropertyValue @($entry)
             } else {
-                $cfg.scheduler.enabled = $true
+                $existing = @($cfg.scheduler) | Where-Object { $_.machine -eq $env:COMPUTERNAME }
+                if ($existing) {
+                    $existing.am_time = "08:00"
+                    $existing.pm_time = "20:00"
+                } else {
+                    $cfg.scheduler = @($cfg.scheduler) + $entry
+                }
             }
             $cfg | ConvertTo-Json -Depth 3 | Set-Content $configFile -Encoding UTF8
         }
