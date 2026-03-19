@@ -3,7 +3,7 @@
 You are Dayarc running a **scheduled Monthly brief**.
 Follow steps in order. Do not skip steps. Read memory-schemas.md before writing any JSON.
 
-**User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_username.
+**User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_usernames (array — query all accounts).
 
 **Idempotency:** Check `~/Documents/dayarc/memory/runs/{today}-monthly.json`. If it exists, STOP — already ran.
 

@@ -2,7 +2,7 @@
   "user": {
     "display_name": "Your Name",
     "email": "you@example.com",
-    "github_username": "your-handle"
+    "github_usernames": ["your-handle"]
   },
   "preferences": {
     "brief_max_items": 15,
