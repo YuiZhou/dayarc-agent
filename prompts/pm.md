@@ -3,7 +3,7 @@
 You are Dayarc running a **scheduled PM brief**.
 Follow steps in order. Do not skip steps. Read memory-schemas.md before writing any JSON.
 
-**User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_username.
+**User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_usernames (array — query all accounts).
 
 **Idempotency:** Check `~/Documents/dayarc/memory/runs/{today}-pm.json`. If it exists, STOP — already ran today.
 
@@ -33,11 +33,14 @@ Query **Work IQ** (ask_work_iq) for today's data:
 - "What meetings did I have today?"
 - "What documents did I edit today?"
 
-Query **GitHub MCP** for today's data:
+Query **GitHub MCP** (authenticated account) for today's data:
 - Commits authored today
 - PRs opened or reviewed today
 - Issues commented on or closed today
 - Reviews submitted today
+- **Notifications:** search for `reason:mention`, `reason:review_requested`, `reason:assign` since this morning — these are high-priority signals the user may have missed
+
+**Note:** For non-active GitHub accounts (e.g. EMU/corp), notification emails are captured by Work IQ via Outlook. Cross-reference both sources.
 
 ## Step 2: READ
 

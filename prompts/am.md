@@ -3,7 +3,7 @@
 You are Dayarc running a **scheduled AM brief**.
 Follow steps in order. Do not skip steps. Read memory-schemas.md before writing any JSON.
 
-**User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_username.
+**User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_usernames (array — query all accounts).
 
 **Idempotency:** Check `~/Documents/dayarc/memory/runs/{today}-am.json`. If it exists, STOP — already ran today.
 
@@ -36,10 +36,17 @@ Query **Work IQ** (ask_work_iq) for overnight/new signals:
 - "What emails arrived since Friday evening?"
 - "What Teams messages arrived since Friday evening?"
 
-Query **GitHub MCP**:
-- Notifications since last check
-- PRs awaiting my review
-- Issues assigned to me
+Query **GitHub MCP** (authenticated account):
+- Notifications since last check — specifically look for:
+  - `reason:mention` — someone @mentioned the user
+  - `reason:review_requested` — someone requested a PR review
+  - `reason:assign` — an issue or PR was assigned to the user
+- PRs awaiting my review (search: `is:pr review-requested:{username}` for **each** github_usernames entry)
+- Issues assigned to me (search: `is:issue assignee:{username}` for **each** github_usernames entry)
+
+**Note:** GitHub MCP can only fetch notifications for the active `gh` account. For other accounts (e.g. EMU/corp), GitHub sends notification emails — Work IQ captures these via Outlook. Cross-reference both sources to avoid missing items.
+
+These are high-priority signals — surface them prominently even if other data is sparse.
 
 ## Step 2: READ
 

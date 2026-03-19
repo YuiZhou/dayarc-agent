@@ -219,13 +219,14 @@ if (Test-Path $configFile) {
 
     $displayName = Read-Host "    Full name as it appears in @mentions (e.g. Yu Zhou, not a nickname)"
     $email       = Read-Host "    Work email address"
-    $ghUser      = Read-Host "    GitHub username"
+    $ghUsers     = Read-Host "    GitHub username(s), comma-separated if multiple"
+    $ghUserList  = @($ghUsers -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
     $config = @{
         user = @{
-            display_name    = $displayName
-            email           = $email
-            github_username = $ghUser
+            display_name     = $displayName
+            email            = $email
+            github_usernames = $ghUserList
         }
         preferences = @{
             brief_max_items     = 15
