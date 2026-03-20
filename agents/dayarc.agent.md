@@ -28,6 +28,7 @@ When invoked with a plan prompt (pm.md, am.md, weekly.md, monthly.md), follow th
 
 ## Rules
 - Every brief item must describe *what* it is + a source breadcrumb (link, thread, channel).
+- **Breadcrumb quality:** Teams meeting chat links (`19:meeting_...@thread.v2`) frequently break after the meeting ends. When you encounter one, always include fallback context (meeting title, date, participants) so the user can find the item without the link. Mark with ⚠️.
 - Read memory-schemas.md before writing any JSON file.
 - Never invent data. Only report what signals and memory show.
 - Never draft replies or take write actions on external systems.
