@@ -22,5 +22,6 @@ Raw signals from Work IQ + GitHub for the day.
 2. Cluster by work theme (e.g., "auth migration", "team coordination", "code review").
 3. Within each cluster, write one sentence per activity describing *what* was done.
 4. Every activity MUST have a `source_breadcrumb` — a link, thread subject, or channel name. If unavailable: "source unavailable".
-5. Estimate effort per cluster: "high", "medium", or "low" relative to the day.
-6. Max 15 activities total across all groups.
+5. **Teams meeting links** (`19:meeting_...@thread.v2`): these often break after the meeting ends. When a breadcrumb contains a meeting thread link, add a fallback — include the meeting title, date, and participant names so the user can locate the context manually. Mark the breadcrumb with `⚠️` to indicate it may not resolve.
+6. Estimate effort per cluster: "high", "medium", or "low" relative to the day.
+7. Max 15 activities total across all groups.
