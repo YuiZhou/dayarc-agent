@@ -2,6 +2,12 @@ name: Triage
 on:
   issues:
     types: [opened, reopened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to triage (for manual testing)'
+        required: true
+        type: number
 
 permissions:
   issues: write
@@ -13,6 +19,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve issue
+        id: resolve
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let issue;
+            if (context.eventName === 'workflow_dispatch') {
+              const { data } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt('${{ inputs.issue_number }}')
+              });
+              issue = data;
+            } else {
+              issue = context.payload.issue;
+            }
+            core.setOutput('number', issue.number);
+            core.setOutput('title', issue.title);
+            core.setOutput('body', issue.body || '(no body)');
+            core.setOutput('author', issue.user.login);
+
       - name: Rate limit check
         id: rate-limit
         uses: actions/github-script@v7
@@ -22,7 +49,7 @@ jobs:
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              creator: context.payload.issue.user.login,
+              creator: '${{ steps.resolve.outputs.author }}',
               since,
               state: 'all',
               per_page: 10
@@ -32,7 +59,7 @@ jobs:
             ).length;
             if (recentCount > 5) {
               core.setOutput('skip', 'true');
-              core.info(`Rate limited: ${context.payload.issue.user.login} opened ${recentCount} issues in the last hour`);
+              core.info(`Rate limited: ${{ steps.resolve.outputs.author }} opened ${recentCount} issues in the last hour`);
             } else {
               core.setOutput('skip', 'false');
             }
@@ -46,8 +73,7 @@ jobs:
             const fs = require('fs');
 
             // Issue details
-            const issue = context.payload.issue;
-            const issueContext = `# Issue #${issue.number}: ${issue.title}\n\n${issue.body || '(no body)'}`;
+            const issueContext = `# Issue #${{ steps.resolve.outputs.number }}: ${{ steps.resolve.outputs.title }}\n\n${{ steps.resolve.outputs.body }}`;
 
             // Open issues for duplicate detection
             const openIssues = await github.rest.issues.listForRepo({
@@ -57,7 +83,7 @@ jobs:
               per_page: 100
             });
             const issueList = openIssues.data
-              .filter(i => i.number !== issue.number && !i.pull_request)
+              .filter(i => i.number !== parseInt('${{ steps.resolve.outputs.number }}') && !i.pull_request)
               .map(i => {
                 const labels = i.labels.map(l => l.name).join(', ');
                 return `- #${i.number}: ${i.title} [${labels}]`;
@@ -126,7 +152,7 @@ jobs:
           script: |
             const fs = require('fs');
             const result = JSON.parse(fs.readFileSync('triage-result.json', 'utf8'));
-            const issue_number = context.payload.issue.number;
+            const issue_number = parseInt('${{ steps.resolve.outputs.number }}');
 
             // Apply labels
             if (result.labels && result.labels.length > 0) {
