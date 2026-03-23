@@ -8,6 +8,8 @@
 - `dayarc-report-issue` skill — File bug reports and feature requests on the Dayarc repo
 - `.github/ISSUE_TEMPLATE/` — Bug report and feature request templates
 - Triage labels: triaged, low-risk, high-risk, needs-review, approved, auto-fix, duplicate, question
+- Triage bot (`triage.yml`) — Auto-classifies new issues via Copilot CLI in GitHub Actions
+- `.github/prompts/triage-prompt.md` — Triage classification prompt
 - Re-run detection: existing install → `git pull`, existing config → skip prompts
 
 ### Changed

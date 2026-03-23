@@ -1,0 +1,164 @@
+name: Triage
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rate limit check
+        id: rate-limit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              creator: context.payload.issue.user.login,
+              since,
+              state: 'all',
+              per_page: 10
+            });
+            const recentCount = issues.data.filter(i =>
+              new Date(i.created_at) >= new Date(since)
+            ).length;
+            if (recentCount > 5) {
+              core.setOutput('skip', 'true');
+              core.info(`Rate limited: ${context.payload.issue.user.login} opened ${recentCount} issues in the last hour`);
+            } else {
+              core.setOutput('skip', 'false');
+            }
+
+      - name: Gather context
+        if: steps.rate-limit.outputs.skip != 'true'
+        id: context
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Issue details
+            const issue = context.payload.issue;
+            const issueContext = `# Issue #${issue.number}: ${issue.title}\n\n${issue.body || '(no body)'}`;
+
+            // Open issues for duplicate detection
+            const openIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            const issueList = openIssues.data
+              .filter(i => i.number !== issue.number && !i.pull_request)
+              .map(i => {
+                const labels = i.labels.map(l => l.name).join(', ');
+                return `- #${i.number}: ${i.title} [${labels}]`;
+              })
+              .join('\n');
+
+            // Write context file for Copilot CLI
+            const prompt = [
+              issueContext,
+              '',
+              '## Open Issues (for duplicate detection)',
+              issueList || '(none)',
+              '',
+              '## Project Files',
+              'Read @spec.md and @design.md for project context.',
+              '',
+              'Classify this issue following the instructions in @.github/prompts/triage-prompt.md',
+              'Output ONLY the JSON object.'
+            ].join('\n');
+
+            fs.writeFileSync('triage-input.md', prompt);
+            core.info(`Wrote triage-input.md (${prompt.length} chars)`);
+
+      - uses: actions/setup-node@v4
+        if: steps.rate-limit.outputs.skip != 'true'
+        with:
+          node-version: '22'
+
+      - name: Install Copilot CLI
+        if: steps.rate-limit.outputs.skip != 'true'
+        run: npm install -g @github/copilot
+
+      - name: Run triage
+        if: steps.rate-limit.outputs.skip != 'true'
+        id: triage
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          PROMPT=$(cat triage-input.md)
+          copilot --allow-all --prompt "$PROMPT" 2>copilot-stderr.log | tee copilot-output.txt
+          # Extract JSON from output (find first { to last })
+          python3 -c "
+          import json, re, sys
+          text = open('copilot-output.txt').read()
+          # Find JSON object in output
+          match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
+          if not match:
+              print('::error::No JSON found in Copilot output')
+              sys.exit(1)
+          result = json.loads(match.group())
+          # Validate required fields
+          for field in ['classification', 'labels', 'summary', 'recommended_action']:
+              if field not in result:
+                  print(f'::error::Missing field: {field}')
+                  sys.exit(1)
+          # Write outputs
+          with open('triage-result.json', 'w') as f:
+              json.dump(result, f)
+          print(json.dumps(result, indent=2))
+          "
+
+      - name: Apply labels
+        if: steps.rate-limit.outputs.skip != 'true' && steps.triage.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('triage-result.json', 'utf8'));
+            const issue_number = context.payload.issue.number;
+
+            // Apply labels
+            if (result.labels && result.labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                labels: result.labels
+              });
+              core.info(`Applied labels: ${result.labels.join(', ')}`);
+            }
+
+            // Build comment
+            let comment = `### 🤖 Triage Bot\n\n`;
+            comment += `**Classification:** ${result.classification}\n\n`;
+            comment += `${result.summary}\n\n`;
+
+            if (result.duplicate_of) {
+              comment += `> This appears to be a duplicate of #${result.duplicate_of}\n\n`;
+            }
+
+            if (result.affected_area) {
+              comment += `**Affected area:** ${result.affected_area}\n\n`;
+            }
+
+            comment += `**Recommended next step:** ${result.recommended_action}\n\n`;
+            comment += `---\n*Thank you for the report! A maintainer will review this shortly.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body: comment
+            });
+            core.info('Posted triage comment');
