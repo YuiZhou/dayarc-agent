@@ -22,7 +22,7 @@ irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
 The setup script will:
 1. **Preflight** — verify `git`, `gh auth`, Copilot CLI, and Outlook
 2. **Clone** `~/.dayarc-agent/` (or `git pull` if already installed)
-3. **Register** agent profile + 10 skills with Copilot CLI
+3. **Register** agent profile + 11 skills with Copilot CLI
 4. **Prompt** for your identity → write `~/Documents/dayarc/config.json`
 5. **Offer scheduler** — optional Task Scheduler entries (AM 8:00 + PM 20:00, Mon–Fri)
 
@@ -63,7 +63,7 @@ Memory, config, and preferences are already there via OneDrive.
 ```
 ~/.dayarc-agent/                          (git clone — agent package)
 ├── agents/dayarc.agent.md
-├── skills/dayarc-*/SKILL.md              10 skill definitions
+├── skills/dayarc-*/SKILL.md              11 skill definitions
 ├── skills/dayarc-deliver/templates/      4 HTML email templates
 ├── prompts/{pm,am,weekly,monthly}.md
 ├── memory-schemas.md

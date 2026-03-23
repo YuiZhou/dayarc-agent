@@ -25,6 +25,7 @@ jobs:
             "skills/dayarc-memory/SKILL.md"
             "skills/dayarc-deliver/SKILL.md"
             "skills/dayarc-upgrade/SKILL.md"
+            "skills/dayarc-report-issue/SKILL.md"
             "skills/dayarc-deliver/templates/pm.hbs"
             "skills/dayarc-deliver/templates/am.hbs"
             "skills/dayarc-deliver/templates/weekly.hbs"
