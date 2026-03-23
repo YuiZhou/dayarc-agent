@@ -8,7 +8,7 @@ This project contains **no code** — only markdown definitions consumed by Copi
 
 ```
 agents/           Agent profile (dayarc.agent.md)
-skills/           10 skill definitions (SKILL.md files)
+skills/           11 skill definitions (SKILL.md files)
 prompts/          4 plan prompts (pm.md, am.md, weekly.md, monthly.md)
 memory-schemas.md Memory file schema reference
 mcp.json          MCP server configuration

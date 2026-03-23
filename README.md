@@ -49,7 +49,7 @@ All briefs include source breadcrumbs (links, thread subjects, channel names) fo
 ```
 ~/.dayarc-agent/                        (agent package — installed per machine)
 ├── agents/dayarc.agent.md              Agent identity + rules
-├── skills/dayarc-*/SKILL.md            10 skill definitions
+├── skills/dayarc-*/SKILL.md            11 skill definitions
 ├── skills/dayarc-deliver/templates/    4 HTML email templates
 ├── prompts/{pm,am,weekly,monthly}.md     Plan instructions
 ├── memory-schemas.md                     Memory file schemas

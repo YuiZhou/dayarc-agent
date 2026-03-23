@@ -9,7 +9,7 @@ Copilot CLI is the agent. Three portable layers:
 ```
 Agent Package (installed)                      User Data ~/Documents/dayarc/ (portable, OneDrive-synced)
 ┌──────────────────────────────────┐           ┌──────────────────────────────┐
-│  skills/       10 skill defs     │           │  memory/    JSON files       │
+│  skills/       11 skill defs     │           │  memory/    JSON files       │
 │  prompts/      4 plan files      │           │  config.json identity+prefs  │
 │  templates/    4 HTML templates  │           └──────────────────────────────┘
 │  memory-schemas.md               │
@@ -109,6 +109,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 | `dayarc-memory` | Read/write JSON | File I/O for memory directory |
 | `dayarc-deliver` | HTML email or terminal | Render template + send via Outlook COM |
 | `dayarc-upgrade` | Status message | Check for / apply agent updates from GitHub |
+| `dayarc-report-issue` | GitHub issue URL | Auto-fill and file bug/feature on Dayarc repo (user confirms) |
 
 ## 5. Memory
 

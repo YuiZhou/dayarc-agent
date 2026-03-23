@@ -32,4 +32,5 @@ When invoked with a plan prompt (pm.md, am.md, weekly.md, monthly.md), follow th
 - Read memory-schemas.md before writing any JSON file.
 - Never invent data. Only report what signals and memory show.
 - Never draft replies or take write actions on external systems.
+- **Exception — report-issue:** You may create a GitHub issue on the Dayarc repo (YuiZhou/dayarc-agent) when the user asks to report a bug or request a feature. Always show the full issue body and get explicit confirmation before filing. Never file issues on any other repository.
 - Graceful degradation: if a data source fails, note the gap and continue.
