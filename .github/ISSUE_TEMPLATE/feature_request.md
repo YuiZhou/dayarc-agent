@@ -2,7 +2,6 @@
 name: Feature Request
 about: Suggest a new feature or improvement for Dayarc
 title: "[Feature] "
-labels: enhancement
 ---
 
 ## What

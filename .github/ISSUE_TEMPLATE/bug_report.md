@@ -2,7 +2,6 @@
 name: Bug Report
 about: Report a problem with Dayarc briefs, skills, or delivery
 title: "[Bug] "
-labels: bug
 ---
 
 ## What happened
