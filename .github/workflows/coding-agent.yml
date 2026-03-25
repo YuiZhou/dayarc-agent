@@ -260,7 +260,9 @@ jobs:
           fi
 
           git commit -m "fix: #${ISSUE_NUM} — ${SUMMARY}"
-          git push origin "$BRANCH"
+
+          # Handle branch collision — force push if branch exists
+          git push origin "$BRANCH" --force
 
           # Build PR body
           PR_BODY="## Automated Fix for #${ISSUE_NUM}
