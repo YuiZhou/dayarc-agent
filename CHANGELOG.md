@@ -10,6 +10,9 @@
 - Triage labels: triaged, low-risk, high-risk, needs-review, approved, auto-fix, duplicate, question
 - Triage bot (`triage.yml`) — Auto-classifies new issues via Copilot CLI in GitHub Actions
 - `.github/prompts/triage-prompt.md` — Triage classification prompt
+- Coding agent (`coding-agent.yml`) — Auto-generates fix PRs when maintainer labels issue `approved`
+- `.github/prompts/coding-prompt.md` — Coding agent prompt with scope guard rules
+- CI scope-guard job — Validates `auto-fix` PRs only modify allowed files
 - Re-run detection: existing install → `git pull`, existing config → skip prompts
 
 ### Changed

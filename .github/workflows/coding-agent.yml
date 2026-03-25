@@ -1,0 +1,351 @@
+name: Coding Agent
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to fix (for manual testing)'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  coding-agent:
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.label.name == 'approved')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Step 1: Resolve issue
+      - name: Resolve issue
+        id: resolve
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let issue;
+            if (context.eventName === 'workflow_dispatch') {
+              const { data } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt('${{ inputs.issue_number }}')
+              });
+              issue = data;
+            } else {
+              issue = context.payload.issue;
+            }
+            core.setOutput('number', issue.number);
+            core.setOutput('title', issue.title);
+            core.setOutput('body', issue.body || '(no body)');
+            // Slugify title for branch name
+            const slug = issue.title
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '')
+              .substring(0, 40);
+            core.setOutput('slug', slug);
+
+      # Step 2: Gather context — read triage comment + identify affected files
+      - name: Gather context
+        id: gather
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
+
+            // Find triage bot comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              per_page: 50
+            });
+            let triageComment = '';
+            let affectedArea = '';
+            let classification = '';
+            for (const c of comments.data) {
+              if (c.body.includes('### 🤖 Triage Bot')) {
+                triageComment = c.body;
+                const areaMatch = c.body.match(/\*\*Affected area:\*\*\s*(.+)/);
+                if (areaMatch) affectedArea = areaMatch[1].trim();
+                const classMatch = c.body.match(/\*\*Classification:\*\*\s*(.+)/);
+                if (classMatch) classification = classMatch[1].trim();
+                break;
+              }
+            }
+
+            core.setOutput('triage_comment', triageComment);
+            core.setOutput('affected_area', affectedArea);
+            core.setOutput('classification', classification);
+            core.info(`Triage comment found: ${triageComment.length > 0}`);
+            core.info(`Affected area: ${affectedArea}`);
+            core.info(`Classification: ${classification}`);
+
+      # Step 3: Read source files based on affected area
+      - name: Read source files
+        id: sources
+        run: |
+          AFFECTED="${{ steps.gather.outputs.affected_area }}"
+          SOURCE_CONTENT=""
+
+          # Try to find the skill file from affected_area
+          if [ -n "$AFFECTED" ]; then
+            # Search for matching skill directories
+            for dir in skills/*/; do
+              skill_name=$(basename "$dir")
+              if echo "$skill_name" | grep -qi "$(echo "$AFFECTED" | sed 's/dayarc-//g')"; then
+                if [ -f "${dir}SKILL.md" ]; then
+                  SOURCE_CONTENT="${SOURCE_CONTENT}## File: ${dir}SKILL.md\n\n$(cat "${dir}SKILL.md")\n\n---\n\n"
+                fi
+                # Include templates if they exist
+                for tmpl in "${dir}templates/"*.hbs 2>/dev/null; do
+                  if [ -f "$tmpl" ]; then
+                    SOURCE_CONTENT="${SOURCE_CONTENT}## File: ${tmpl}\n\n$(cat "${tmpl}")\n\n---\n\n"
+                  fi
+                done
+              fi
+            done
+          fi
+
+          # If no specific match, include all skill files (capped)
+          if [ -z "$SOURCE_CONTENT" ]; then
+            for f in skills/*/SKILL.md; do
+              if [ -f "$f" ]; then
+                SOURCE_CONTENT="${SOURCE_CONTENT}## File: ${f}\n\n$(cat "$f")\n\n---\n\n"
+              fi
+            done
+          fi
+
+          # Cap at ~50KB
+          echo -e "$SOURCE_CONTENT" | head -c 50000 > source-files.txt
+          echo "Source files collected: $(wc -c < source-files.txt) bytes"
+
+      # Step 4: Build prompt input
+      - name: Build prompt
+        run: |
+          cat > coding-input.md << 'PROMPT_DELIM'
+          # Issue #${{ steps.resolve.outputs.number }}: ${{ steps.resolve.outputs.title }}
+
+          ${{ steps.resolve.outputs.body }}
+
+          ## Triage Analysis
+
+          ${{ steps.gather.outputs.triage_comment }}
+
+          ## Affected Source Files
+
+          PROMPT_DELIM
+          cat source-files.txt >> coding-input.md
+          cat >> coding-input.md << 'PROMPT_DELIM'
+
+          ## Project Context
+
+          Read @spec.md and @design.md for product context.
+          Read @memory-schemas.md if the fix involves memory-related skills.
+
+          Follow the instructions in @.github/prompts/coding-prompt.md
+          Output ONLY the JSON object.
+          PROMPT_DELIM
+          echo "Prompt built: $(wc -c < coding-input.md) bytes"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
+
+      # Step 5: Run Copilot CLI
+      - name: Run Copilot CLI
+        id: copilot
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          PROMPT=$(cat coding-input.md)
+          copilot --allow-all --prompt "$PROMPT" 2>copilot-stderr.log | tee copilot-output.txt
+
+          # Extract and validate JSON
+          python3 << 'PYEOF'
+          import json, re, sys
+
+          text = open('copilot-output.txt').read()
+          match = re.search(r'\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}', text, re.DOTALL)
+          if not match:
+              print('::error::No JSON found in Copilot output')
+              with open('copilot-action.txt', 'w') as f:
+                  f.write('error')
+              sys.exit(0)  # Don't fail — we'll handle in the comment step
+
+          try:
+              result = json.loads(match.group())
+          except json.JSONDecodeError as e:
+              print(f'::error::Invalid JSON: {e}')
+              with open('copilot-action.txt', 'w') as f:
+                  f.write('error')
+              sys.exit(0)
+
+          action = result.get('action', 'unknown')
+          with open('copilot-action.txt', 'w') as f:
+              f.write(action)
+
+          with open('copilot-result.json', 'w') as f:
+              json.dump(result, f, indent=2)
+
+          print(json.dumps(result, indent=2))
+
+          if action == 'fix':
+              # Validate required fields
+              for field in ['files', 'pr_body', 'summary']:
+                  if field not in result:
+                      print(f'::error::Missing field: {field}')
+                      with open('copilot-action.txt', 'w') as f:
+                          f.write('error')
+                      sys.exit(0)
+              if not result['files']:
+                  print('::error::Empty files array')
+                  with open('copilot-action.txt', 'w') as f:
+                      f.write('error')
+                  sys.exit(0)
+          PYEOF
+
+      # Step 6: Apply edits (only if action == fix)
+      - name: Apply edits
+        if: always()
+        id: apply
+        run: |
+          ACTION=$(cat copilot-action.txt 2>/dev/null || echo "error")
+          echo "action=$ACTION" >> "$GITHUB_OUTPUT"
+
+          if [ "$ACTION" != "fix" ]; then
+            echo "Skipping edits — action is: $ACTION"
+            exit 0
+          fi
+
+          python3 << 'PYEOF'
+          import json, os
+
+          result = json.load(open('copilot-result.json'))
+          for f in result['files']:
+              path = f['path']
+              content = f['content']
+              os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+              with open(path, 'w') as fh:
+                  fh.write(content)
+              print(f'Wrote: {path} ({len(content)} bytes)')
+          PYEOF
+
+      # Step 7: Scope guard
+      - name: Scope guard
+        if: steps.apply.outputs.action == 'fix'
+        run: |
+          CHANGED=$(git diff --name-only)
+          ALLOWED="^(skills/.*/SKILL\.md|skills/.*/templates/.*\.hbs|README\.md|USAGE\.md|CONTRIBUTING\.md)$"
+
+          # Self-referential guard
+          BLOCKED=".github/workflows/ .github/prompts/"
+
+          VIOLATIONS=""
+          for file in $CHANGED; do
+            # Check self-referential blocklist
+            for blocked in $BLOCKED; do
+              if echo "$file" | grep -q "^${blocked}"; then
+                VIOLATIONS="${VIOLATIONS}\n  - SELF-REFERENTIAL: $file"
+              fi
+            done
+            # Check allowlist
+            if ! echo "$file" | grep -qE "$ALLOWED"; then
+              VIOLATIONS="${VIOLATIONS}\n  - SCOPE: $file"
+            fi
+          done
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Scope guard violations:${VIOLATIONS}"
+            echo "violations=true" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "Scope guard passed for: $CHANGED"
+          echo "violations=false" >> "$GITHUB_OUTPUT"
+
+      # Step 8: Create branch + PR
+      - name: Create branch and PR
+        if: steps.apply.outputs.action == 'fix'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          ISSUE_NUM="${{ steps.resolve.outputs.number }}"
+          SLUG="${{ steps.resolve.outputs.slug }}"
+          BRANCH="fix/${ISSUE_NUM}-${SLUG}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "fix: #${ISSUE_NUM} — $(cat copilot-result.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"])')"
+          git push origin "$BRANCH"
+
+          PR_BODY=$(python3 -c "import json; r=json.load(open('copilot-result.json')); print(r['pr_body'] + '\n\n---\nCloses #${ISSUE_NUM}\n\n_Generated by Dayarc coding agent._')")
+          PR_URL=$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "fix: #${ISSUE_NUM} — $(python3 -c "import json; print(json.load(open('copilot-result.json'))['summary'])")" \
+            --body "$PR_BODY" \
+            --label "auto-fix")
+
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "Created PR: $PR_URL"
+
+      # Step 9: Comment on issue
+      - name: Comment on issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
+            const action = fs.existsSync('copilot-action.txt')
+              ? fs.readFileSync('copilot-action.txt', 'utf8').trim()
+              : 'error';
+
+            let comment = '### 🤖 Coding Agent\n\n';
+
+            if (action === 'fix') {
+              const prUrl = '${{ steps.pr.outputs.pr_url }}';
+              if (prUrl) {
+                comment += `A fix has been generated and submitted as ${prUrl}.\n\n`;
+                comment += 'Please review the PR and merge if the changes look correct.';
+              } else {
+                comment += '⚠️ Fix was generated but PR creation failed. Check the workflow logs.';
+              }
+            } else if (action === 'unable') {
+              let result;
+              try {
+                result = JSON.parse(fs.readFileSync('copilot-result.json', 'utf8'));
+              } catch { result = {}; }
+              comment += `The coding agent determined it **cannot automatically fix** this issue.\n\n`;
+              comment += `**Reason:** ${result.reason || 'Unknown'}\n\n`;
+              if (result.suggestion) {
+                comment += `**Suggestion for maintainer:** ${result.suggestion}\n\n`;
+              }
+              comment += 'A maintainer will need to address this manually.';
+            } else {
+              comment += '⚠️ The coding agent could not produce a valid fix.\n\n';
+              comment += 'This may be due to the issue being too complex or ambiguous for automated resolution.\n';
+              comment += 'Maintainer: please investigate manually.';
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: comment
+            });
+            core.info('Posted coding agent comment');
