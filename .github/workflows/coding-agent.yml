@@ -105,7 +105,7 @@ jobs:
                   SOURCE_CONTENT="${SOURCE_CONTENT}## File: ${dir}SKILL.md\n\n$(cat "${dir}SKILL.md")\n\n---\n\n"
                 fi
                 # Include templates if they exist
-                for tmpl in "${dir}templates/"*.hbs 2>/dev/null; do
+                for tmpl in "${dir}templates/"*.hbs; do
                   if [ -f "$tmpl" ]; then
                     SOURCE_CONTENT="${SOURCE_CONTENT}## File: ${tmpl}\n\n$(cat "${tmpl}")\n\n---\n\n"
                   fi
