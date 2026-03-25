@@ -21,8 +21,9 @@ User asks to report a bug, file an issue, or request a feature for Dayarc.
 5. **Confirm** — Wait for explicit "yes" before filing. Never file without confirmation.
 6. **File** — Run:
    ```
-   gh issue create --repo YuiZhou/dayarc-agent --title "{title}" --body "{body}" --label "{bug|enhancement}"
+   gh issue create --repo YuiZhou/dayarc-agent --title "{title}" --body "{body}"
    ```
+   Do NOT add `--label`. Users don't have label permissions — the triage bot handles labeling.
 7. **Report** — Show the issue URL to the user.
 
 ## Issue Body Format
