@@ -163,6 +163,7 @@ jobs:
 
       # Step 5: Run Copilot CLI — let it edit files directly
       - name: Run Copilot CLI
+        timeout-minutes: 10
         env:
           GH_TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
@@ -234,7 +235,7 @@ jobs:
         if: steps.detect.outputs.action == 'fix'
         id: pr
         env:
-          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           ISSUE_NUM="${{ steps.resolve.outputs.number }}"
           SLUG="${{ steps.resolve.outputs.slug }}"
