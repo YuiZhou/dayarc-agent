@@ -42,3 +42,5 @@ You must NEVER modify:
 - Make minimal, targeted changes — don't rewrite entire files unnecessarily
 - Feature requests: only fix if the change is trivially additive. Otherwise write `unable.md`.
 - Always reference the relevant spec/design section in `summary.md`
+- **NEVER ask the user questions or wait for input.** You are running unattended in CI. If something is ambiguous, make your best judgment or write `unable.md`.
+- Do NOT use interactive tools or commands that require confirmation.
