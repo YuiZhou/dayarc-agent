@@ -151,7 +151,6 @@ jobs:
           Read @memory-schemas.md if the fix involves memory-related skills.
 
           Follow the instructions in @.github/prompts/coding-prompt.md
-          Output ONLY the JSON object.
           PROMPT_DELIM
           echo "Prompt built: $(wc -c < coding-input.md) bytes"
 
@@ -162,115 +161,63 @@ jobs:
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
 
-      # Step 5: Run Copilot CLI
+      # Step 5: Run Copilot CLI — let it edit files directly
       - name: Run Copilot CLI
-        id: copilot
         env:
           GH_TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
           PROMPT=$(cat coding-input.md)
           copilot --allow-all --prompt "$PROMPT" 2>copilot-stderr.log | tee copilot-output.txt
 
-          # Extract and validate JSON
-          python3 << 'PYEOF'
-          import json, sys
-
-          text = open('copilot-output.txt').read()
-
-          # Find JSON by looking for {"action": pattern and bracket-matching
-          def extract_json(text):
-              start = text.find('{"action"')
-              if start == -1:
-                  return None
-              depth = 0
-              for i in range(start, len(text)):
-                  if text[i] == '{':
-                      depth += 1
-                  elif text[i] == '}':
-                      depth -= 1
-                      if depth == 0:
-                          try:
-                              return json.loads(text[start:i+1])
-                          except json.JSONDecodeError:
-                              continue
-              return None
-
-          result = extract_json(text)
-          if not result:
-              print('::error::No valid JSON with "action" field found in Copilot output')
-              with open('copilot-action.txt', 'w') as f:
-                  f.write('error')
-              sys.exit(0)  # Don't fail — we'll handle in the comment step
-
-          action = result.get('action', 'unknown')
-          with open('copilot-action.txt', 'w') as f:
-              f.write(action)
-
-          with open('copilot-result.json', 'w') as f:
-              json.dump(result, f, indent=2)
-
-          print(json.dumps(result, indent=2))
-
-          if action == 'fix':
-              # Validate required fields
-              for field in ['files', 'pr_body', 'summary']:
-                  if field not in result:
-                      print(f'::error::Missing field: {field}')
-                      with open('copilot-action.txt', 'w') as f:
-                          f.write('error')
-                      sys.exit(0)
-              if not result['files']:
-                  print('::error::Empty files array')
-                  with open('copilot-action.txt', 'w') as f:
-                      f.write('error')
-                  sys.exit(0)
-          PYEOF
-
-      # Step 6: Apply edits (only if action == fix)
-      - name: Apply edits
-        if: always()
-        id: apply
+      # Step 6: Detect what changed
+      - name: Detect changes
+        id: detect
         run: |
-          ACTION=$(cat copilot-action.txt 2>/dev/null || echo "error")
-          echo "action=$ACTION" >> "$GITHUB_OUTPUT"
+          # Clean up agent artifacts before checking diff
+          rm -f coding-input.md source-files.txt copilot-output.txt copilot-stderr.log
+          rm -rf .copilot/
 
-          if [ "$ACTION" != "fix" ]; then
-            echo "Skipping edits — action is: $ACTION"
-            exit 0
+          CHANGED=$(git diff --name-only)
+          SUMMARY_EXISTS="false"
+          UNABLE_EXISTS="false"
+
+          if [ -f "summary.md" ]; then
+            SUMMARY_EXISTS="true"
+            git checkout -- summary.md 2>/dev/null || rm -f summary.md
+          fi
+          if [ -f "unable.md" ]; then
+            UNABLE_EXISTS="true"
           fi
 
-          python3 << 'PYEOF'
-          import json, os
-
-          result = json.load(open('copilot-result.json'))
-          for f in result['files']:
-              path = f['path']
-              content = f['content']
-              os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
-              with open(path, 'w') as fh:
-                  fh.write(content)
-              print(f'Wrote: {path} ({len(content)} bytes)')
-          PYEOF
+          if [ -z "$CHANGED" ] && [ "$UNABLE_EXISTS" = "true" ]; then
+            echo "action=unable" >> "$GITHUB_OUTPUT"
+            echo "Agent determined it cannot fix this issue"
+            cat unable.md
+            rm -f unable.md
+          elif [ -z "$CHANGED" ]; then
+            echo "action=none" >> "$GITHUB_OUTPUT"
+            echo "No file changes detected"
+          else
+            echo "action=fix" >> "$GITHUB_OUTPUT"
+            echo "Changed files:"
+            echo "$CHANGED"
+          fi
 
       # Step 7: Scope guard
       - name: Scope guard
-        if: steps.apply.outputs.action == 'fix'
+        if: steps.detect.outputs.action == 'fix'
         run: |
           CHANGED=$(git diff --name-only)
           ALLOWED="^(skills/.*/SKILL\.md|skills/.*/templates/.*\.hbs|README\.md|USAGE\.md|CONTRIBUTING\.md)$"
-
-          # Self-referential guard
           BLOCKED=".github/workflows/ .github/prompts/"
 
           VIOLATIONS=""
           for file in $CHANGED; do
-            # Check self-referential blocklist
             for blocked in $BLOCKED; do
               if echo "$file" | grep -q "^${blocked}"; then
                 VIOLATIONS="${VIOLATIONS}\n  - SELF-REFERENTIAL: $file"
               fi
             done
-            # Check allowlist
             if ! echo "$file" | grep -qE "$ALLOWED"; then
               VIOLATIONS="${VIOLATIONS}\n  - SCOPE: $file"
             fi
@@ -278,16 +225,13 @@ jobs:
 
           if [ -n "$VIOLATIONS" ]; then
             echo "::error::Scope guard violations:${VIOLATIONS}"
-            echo "violations=true" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-
           echo "Scope guard passed for: $CHANGED"
-          echo "violations=false" >> "$GITHUB_OUTPUT"
 
       # Step 8: Create branch + PR
       - name: Create branch and PR
-        if: steps.apply.outputs.action == 'fix'
+        if: steps.detect.outputs.action == 'fix'
         id: pr
         env:
           GH_TOKEN: ${{ secrets.COPILOT_PAT }}
@@ -299,15 +243,38 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
+
+          # Stage only tracked file changes (not agent artifacts)
           git add -A
-          git commit -m "fix: #${ISSUE_NUM} — $(cat copilot-result.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"])')"
+          # Remove any agent artifacts that got staged
+          git reset HEAD -- summary.md unable.md coding-input.md source-files.txt copilot-output.txt copilot-stderr.log 2>/dev/null || true
+
+          # Build commit message from summary.md or copilot output
+          SUMMARY=""
+          if [ -f "summary.md" ]; then
+            SUMMARY=$(head -5 summary.md | tr '\n' ' ' | cut -c1-100)
+          fi
+          if [ -z "$SUMMARY" ]; then
+            SUMMARY="Automated fix for issue #${ISSUE_NUM}"
+          fi
+
+          git commit -m "fix: #${ISSUE_NUM} — ${SUMMARY}"
           git push origin "$BRANCH"
 
-          PR_BODY=$(python3 -c "import json; r=json.load(open('copilot-result.json')); print(r['pr_body'] + '\n\n---\nCloses #${ISSUE_NUM}\n\n_Generated by Dayarc coding agent._')")
+          # Build PR body
+          PR_BODY="## Automated Fix for #${ISSUE_NUM}
+
+          $(cat summary.md 2>/dev/null || echo 'Fix generated by Dayarc coding agent.')
+
+          ---
+          Closes #${ISSUE_NUM}
+
+          _Generated by Dayarc coding agent._"
+
           PR_URL=$(gh pr create \
             --base main \
             --head "$BRANCH" \
-            --title "fix: #${ISSUE_NUM} — $(python3 -c "import json; print(json.load(open('copilot-result.json'))['summary'])")" \
+            --title "fix: #${ISSUE_NUM} — ${SUMMARY}" \
             --body "$PR_BODY" \
             --label "auto-fix")
 
@@ -322,9 +289,7 @@ jobs:
           script: |
             const fs = require('fs');
             const issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
-            const action = fs.existsSync('copilot-action.txt')
-              ? fs.readFileSync('copilot-action.txt', 'utf8').trim()
-              : 'error';
+            const action = '${{ steps.detect.outputs.action }}' || 'none';
 
             let comment = '### 🤖 Coding Agent\n\n';
 
@@ -337,18 +302,15 @@ jobs:
                 comment += '⚠️ Fix was generated but PR creation failed. Check the workflow logs.';
               }
             } else if (action === 'unable') {
-              let result;
+              let reason = 'The fix requires changes outside the coding agent scope.';
               try {
-                result = JSON.parse(fs.readFileSync('copilot-result.json', 'utf8'));
-              } catch { result = {}; }
+                reason = fs.readFileSync('unable.md', 'utf8');
+              } catch {}
               comment += `The coding agent determined it **cannot automatically fix** this issue.\n\n`;
-              comment += `**Reason:** ${result.reason || 'Unknown'}\n\n`;
-              if (result.suggestion) {
-                comment += `**Suggestion for maintainer:** ${result.suggestion}\n\n`;
-              }
+              comment += `${reason}\n\n`;
               comment += 'A maintainer will need to address this manually.';
             } else {
-              comment += '⚠️ The coding agent could not produce a valid fix.\n\n';
+              comment += '⚠️ The coding agent could not produce a fix.\n\n';
               comment += 'This may be due to the issue being too complex or ambiguous for automated resolution.\n';
               comment += 'Maintainer: please investigate manually.';
             }
