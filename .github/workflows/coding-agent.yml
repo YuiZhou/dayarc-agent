@@ -173,23 +173,34 @@ jobs:
 
           # Extract and validate JSON
           python3 << 'PYEOF'
-          import json, re, sys
+          import json, sys
 
           text = open('copilot-output.txt').read()
-          match = re.search(r'\{[^{}]*(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}[^{}]*)*\}', text, re.DOTALL)
-          if not match:
-              print('::error::No JSON found in Copilot output')
+
+          # Find JSON by looking for {"action": pattern and bracket-matching
+          def extract_json(text):
+              start = text.find('{"action"')
+              if start == -1:
+                  return None
+              depth = 0
+              for i in range(start, len(text)):
+                  if text[i] == '{':
+                      depth += 1
+                  elif text[i] == '}':
+                      depth -= 1
+                      if depth == 0:
+                          try:
+                              return json.loads(text[start:i+1])
+                          except json.JSONDecodeError:
+                              continue
+              return None
+
+          result = extract_json(text)
+          if not result:
+              print('::error::No valid JSON with "action" field found in Copilot output')
               with open('copilot-action.txt', 'w') as f:
                   f.write('error')
               sys.exit(0)  # Don't fail — we'll handle in the comment step
-
-          try:
-              result = json.loads(match.group())
-          except json.JSONDecodeError as e:
-              print(f'::error::Invalid JSON: {e}')
-              with open('copilot-action.txt', 'w') as f:
-                  f.write('error')
-              sys.exit(0)
 
           action = result.get('action', 'unknown')
           with open('copilot-action.txt', 'w') as f:
