@@ -72,8 +72,13 @@ jobs:
           script: |
             const fs = require('fs');
 
-            // Issue details
-            const issueContext = `# Issue #${{ steps.resolve.outputs.number }}: ${{ steps.resolve.outputs.title }}\n\n${{ steps.resolve.outputs.body }}`;
+            // Fetch issue via API to avoid template literal injection
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt('${{ steps.resolve.outputs.number }}')
+            });
+            const issueContext = `# Issue #${issue.number}: ${issue.title}\n\n${issue.body || '(no body)'}`;
 
             // Open issues for duplicate detection
             const openIssues = await github.rest.issues.listForRepo({
@@ -83,7 +88,7 @@ jobs:
               per_page: 100
             });
             const issueList = openIssues.data
-              .filter(i => i.number !== parseInt('${{ steps.resolve.outputs.number }}') && !i.pull_request)
+              .filter(i => i.number !== issue.number && !i.pull_request)
               .map(i => {
                 const labels = i.labels.map(l => l.name).join(', ');
                 return `- #${i.number}: ${i.title} [${labels}]`;
