@@ -11,15 +11,23 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 
 ## Step 0: CHECK REPLIES
 
-Search Outlook for replies to previous briefs:
-- Subject contains `RE: ☀️` or `RE: 🌙` (brief reply)
-- Received since last run
+**0a. Find the cutoff timestamp.** Read the most recent run tag via **dayarc-memory**:
+- PM brief: read `runs/{today}-am.json` (last AM run)
+- If missing, fall back to `runs/{yesterday}-pm.json`, then 12 hours ago.
+- Extract the `timestamp` field — this is your "since" cutoff.
 
-For each reply found:
+**0b. Query for reply emails.** Use **Work IQ** with this exact prompt:
+> Show me emails I received with subjects matching any of: `RE: ☀️`, `RE: 🌙`, `RE: 📊`, `RE: 📅` since {cutoff timestamp}
+
+**0c. Process each reply found:**
 1. Use **parse_reply** skill to extract corrections.
 2. If corrections found, read the latest daily profile via **dayarc-memory**.
 3. Apply corrections (mark_done, remove, add_priority, correct) to the profile.
 4. Write updated profile back via **dayarc-memory**.
+5. Set a flag: `replies_applied = true` with a summary of what changed.
+
+**0d. Acknowledgment.** If `replies_applied`, include at the top of the brief output:
+> ✅ Applied corrections from your reply: {summary of changes}
 
 If no replies found, continue to Step 1.
 
