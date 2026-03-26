@@ -129,16 +129,36 @@ jobs:
         run: |
           PROMPT=$(cat triage-input.md)
           copilot --allow-all --prompt "$PROMPT" 2>copilot-stderr.log | tee copilot-output.txt
-          # Extract JSON from output (find first { to last })
-          python3 -c "
-          import json, re, sys
+          # Extract and validate JSON from output
+          python3 << 'PYEOF'
+          import json, sys
           text = open('copilot-output.txt').read()
-          # Find JSON object in output
-          match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
-          if not match:
+          # Strip markdown fences if present
+          lines = text.strip().splitlines()
+          cleaned = []
+          for line in lines:
+              if line.strip().startswith('```'):
+                  continue
+              cleaned.append(line)
+          text = '\n'.join(cleaned)
+          # Find outermost JSON object by brace matching
+          start = text.find('{')
+          if start == -1:
               print('::error::No JSON found in Copilot output')
               sys.exit(1)
-          result = json.loads(match.group())
+          depth = 0
+          end = start
+          for i in range(start, len(text)):
+              if text[i] == '{': depth += 1
+              elif text[i] == '}': depth -= 1
+              if depth == 0:
+                  end = i + 1
+                  break
+          try:
+              result = json.loads(text[start:end])
+          except json.JSONDecodeError as e:
+              print(f'::error::Invalid JSON: {e}')
+              sys.exit(1)
           # Validate required fields
           for field in ['classification', 'labels', 'pm', 'dev']:
               if field not in result:
@@ -152,7 +172,7 @@ jobs:
           with open('triage-result.json', 'w') as f:
               json.dump(result, f)
           print(json.dumps(result, indent=2))
-          "
+          PYEOF
 
       - name: Apply labels
         if: steps.rate-limit.outputs.skip != 'true' && steps.triage.outcome == 'success'
