@@ -135,9 +135,13 @@ jobs:
               sys.exit(1)
           result = json.loads(match.group())
           # Validate required fields
-          for field in ['classification', 'labels', 'summary', 'recommended_action']:
+          for field in ['classification', 'labels', 'pm', 'dev']:
               if field not in result:
                   print(f'::error::Missing field: {field}')
+                  sys.exit(1)
+          for role in ['pm', 'dev']:
+              if 'verdict' not in result[role] or 'reasoning' not in result[role]:
+                  print(f'::error::Missing verdict/reasoning in {role}')
                   sys.exit(1)
           # Write outputs
           with open('triage-result.json', 'w') as f:
@@ -165,21 +169,41 @@ jobs:
               core.info(`Applied labels: ${result.labels.join(', ')}`);
             }
 
-            // Build comment
+            // Verdict emoji
+            const emoji = v => v === 'approve' ? '✅' : v === 'reject' ? '❌' : '💬';
+
+            // Build comment with two perspectives
             let comment = `### 🤖 Triage Bot\n\n`;
-            comment += `**Classification:** ${result.classification}\n\n`;
-            comment += `${result.summary}\n\n`;
+            comment += `**Classification:** ${result.classification}`;
+            if (result.affected_area) {
+              comment += ` · **Area:** ${result.affected_area}`;
+            }
+            comment += `\n\n`;
 
             if (result.duplicate_of) {
-              comment += `> This appears to be a duplicate of #${result.duplicate_of}\n\n`;
+              comment += `> Likely duplicate of #${result.duplicate_of}\n\n`;
             }
 
-            if (result.affected_area) {
-              comment += `**Affected area:** ${result.affected_area}\n\n`;
+            // PM perspective
+            if (result.pm) {
+              comment += `#### 📋 PM — ${emoji(result.pm.verdict)} ${result.pm.verdict}\n`;
+              comment += `${result.pm.reasoning}\n\n`;
             }
 
-            comment += `**Recommended next step:** ${result.recommended_action}\n\n`;
-            comment += `---\n*Thank you for the report! A maintainer will review this shortly.*`;
+            // Dev Lead perspective
+            if (result.dev) {
+              comment += `#### 🔧 Dev Lead — ${emoji(result.dev.verdict)} ${result.dev.verdict}\n`;
+              comment += `${result.dev.reasoning}\n\n`;
+              if (result.dev.tech_guide && result.dev.tech_guide.length > 0) {
+                comment += `**Tech guide:**\n`;
+                for (const step of result.dev.tech_guide) {
+                  comment += `- ${step}\n`;
+                }
+                comment += `\n`;
+              }
+            }
+
+            comment += `---\n*Maintainer: review above and apply \`approved\` to trigger the coding agent.*`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
