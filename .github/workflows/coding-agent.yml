@@ -162,6 +162,11 @@ jobs:
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
 
+      # Save original HEAD so we can detect ALL changes (unstaged, staged, committed)
+      - name: Save baseline SHA
+        id: baseline
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       # Step 5: Run Copilot CLI — let it edit files directly
       - name: Run Copilot CLI
         timeout-minutes: 10
@@ -179,7 +184,9 @@ jobs:
           rm -f coding-input.md source-files.txt copilot-output.txt copilot-stderr.log
           rm -rf .copilot/
 
-          CHANGED=$(git diff --name-only)
+          BASELINE="${{ steps.baseline.outputs.sha }}"
+          # Diff against baseline to catch unstaged, staged, AND committed changes
+          CHANGED=$(git diff --name-only "$BASELINE")
           SUMMARY_EXISTS="false"
           UNABLE_EXISTS="false"
 
@@ -209,7 +216,8 @@ jobs:
       - name: Scope guard
         if: steps.detect.outputs.action == 'fix'
         run: |
-          CHANGED=$(git diff --name-only)
+          BASELINE="${{ steps.baseline.outputs.sha }}"
+          CHANGED=$(git diff --name-only "$BASELINE")
           ALLOWED="^(skills/.*/SKILL\.md|skills/.*/templates/.*\.hbs|README\.md|USAGE\.md|CONTRIBUTING\.md)$"
           BLOCKED=".github/workflows/ .github/prompts/"
 
