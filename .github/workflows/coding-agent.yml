@@ -180,29 +180,42 @@ jobs:
       - name: Detect changes
         id: detect
         run: |
-          # Clean up agent artifacts before checking diff
+          # Clean up build artifacts before checking diff
           rm -f coding-input.md source-files.txt copilot-output.txt copilot-stderr.log
           rm -rf .copilot/
+
+          # Save agent status files content, then fully remove them
+          SUMMARY_CONTENT=""
+          UNABLE_CONTENT=""
+          if [ -f "summary.md" ]; then
+            SUMMARY_CONTENT=$(cat summary.md)
+          fi
+          if [ -f "unable.md" ]; then
+            UNABLE_CONTENT=$(cat unable.md)
+          fi
+          # Remove from working tree AND git index so they don't pollute the diff
+          rm -f summary.md unable.md
+          git rm -f --cached summary.md unable.md 2>/dev/null || true
+          git checkout -- summary.md 2>/dev/null || true
+          git checkout -- unable.md 2>/dev/null || true
 
           BASELINE="${{ steps.baseline.outputs.sha }}"
           # Diff against baseline to catch unstaged, staged, AND committed changes
           CHANGED=$(git diff --name-only "$BASELINE")
-          SUMMARY_EXISTS="false"
-          UNABLE_EXISTS="false"
 
-          if [ -f "summary.md" ]; then
-            SUMMARY_EXISTS="true"
-            git checkout -- summary.md 2>/dev/null || rm -f summary.md
-          fi
-          if [ -f "unable.md" ]; then
-            UNABLE_EXISTS="true"
+          # Pass summary content via outputs for the PR step
+          if [ -n "$SUMMARY_CONTENT" ]; then
+            {
+              echo "summary<<SUMMARY_DELIM"
+              echo "$SUMMARY_CONTENT"
+              echo "SUMMARY_DELIM"
+            } >> "$GITHUB_OUTPUT"
           fi
 
-          if [ -z "$CHANGED" ] && [ "$UNABLE_EXISTS" = "true" ]; then
+          if [ -z "$CHANGED" ] && [ -n "$UNABLE_CONTENT" ]; then
             echo "action=unable" >> "$GITHUB_OUTPUT"
             echo "Agent determined it cannot fix this issue"
-            cat unable.md
-            rm -f unable.md
+            echo "$UNABLE_CONTENT"
           elif [ -z "$CHANGED" ]; then
             echo "action=none" >> "$GITHUB_OUTPUT"
             echo "No file changes detected"
@@ -259,13 +272,11 @@ jobs:
           # Remove any agent artifacts that got staged
           git reset HEAD -- summary.md unable.md coding-input.md source-files.txt copilot-output.txt copilot-stderr.log 2>/dev/null || true
 
-          # Build commit message from summary.md or copilot output
-          SUMMARY=""
-          if [ -f "summary.md" ]; then
-            SUMMARY=$(head -5 summary.md | tr '\n' ' ' | cut -c1-100)
-          fi
-          if [ -z "$SUMMARY" ]; then
-            SUMMARY="${{ steps.resolve.outputs.title }}"
+          # Build commit message from detect step summary output
+          SUMMARY="${{ steps.resolve.outputs.title }}"
+          DETECT_SUMMARY="${{ steps.detect.outputs.summary }}"
+          if [ -n "$DETECT_SUMMARY" ]; then
+            SUMMARY=$(echo "$DETECT_SUMMARY" | head -5 | tr '\n' ' ' | cut -c1-100)
           fi
 
           git commit -m "fix: #${ISSUE_NUM} — ${SUMMARY}"
@@ -273,11 +284,8 @@ jobs:
           # Handle branch collision — force push if branch exists
           git push origin "$BRANCH" --force
 
-          # Build PR body from summary.md
-          SUMMARY_BODY=""
-          if [ -f "summary.md" ]; then
-            SUMMARY_BODY=$(cat summary.md)
-          fi
+          # Build PR body from detect step summary output
+          SUMMARY_BODY="${DETECT_SUMMARY:-No detailed summary available.}"
 
           PR_BODY="## Fixes #${ISSUE_NUM}
 
