@@ -27,12 +27,13 @@ You will receive:
 You may ONLY modify files matching these patterns:
 - `skills/*/SKILL.md`
 - `skills/*/templates/*.hbs`
+- `prompts/*.md` (plan prompts)
+- `memory-schemas.md`
 - `README.md`, `USAGE.md`, `CONTRIBUTING.md`
 
 You must NEVER modify:
-- `memory-schemas.md`, `config.example.json`
+- `config.example.json`
 - `agents/dayarc.agent.md`
-- `prompts/*.md` (plan prompts)
 - `setup.ps1`, `scheduler.ps1`
 - `.github/workflows/*`, `.github/prompts/*`
 - `spec.md`, `design.md`

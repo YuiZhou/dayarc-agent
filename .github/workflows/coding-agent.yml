@@ -210,6 +210,11 @@ jobs:
 
           if [ -z "$CHANGED" ] && [ -n "$UNABLE_CONTENT" ]; then
             echo "action=unable" >> "$GITHUB_OUTPUT"
+            {
+              echo "unable<<UNABLE_DELIM"
+              echo "$UNABLE_CONTENT"
+              echo "UNABLE_DELIM"
+            } >> "$GITHUB_OUTPUT"
             echo "Agent determined it cannot fix this issue"
             echo "$UNABLE_CONTENT"
           elif [ -z "$CHANGED" ]; then
@@ -227,8 +232,8 @@ jobs:
         run: |
           BASELINE="${{ steps.baseline.outputs.sha }}"
           CHANGED=$(git diff --name-only "$BASELINE")
-          ALLOWED="^(skills/.*/SKILL\.md|skills/.*/templates/.*\.hbs|README\.md|USAGE\.md|CONTRIBUTING\.md)$"
-          BLOCKED=".github/workflows/ .github/prompts/"
+          ALLOWED="^(skills/.*/SKILL\.md|skills/.*/templates/.*\.hbs|prompts/.*\.md|memory-schemas\.md|README\.md|USAGE\.md|CONTRIBUTING\.md)$"
+          BLOCKED=".github/workflows/ .github/prompts/ setup\.ps1 scheduler\.ps1 package\.json"
 
           VIOLATIONS=""
           for file in $CHANGED; do
@@ -327,9 +332,10 @@ jobs:
       - name: Comment on issue
         if: always()
         uses: actions/github-script@v7
+        env:
+          UNABLE_REASON: ${{ steps.detect.outputs.unable }}
         with:
           script: |
-            const fs = require('fs');
             const issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
             const action = '${{ steps.detect.outputs.action }}' || 'none';
 
@@ -349,10 +355,7 @@ jobs:
                 comment += '⚠️ Fix was generated but PR creation failed. Check the workflow logs.';
               }
             } else if (action === 'unable') {
-              let reason = 'The fix requires changes outside the coding agent scope.';
-              try {
-                reason = fs.readFileSync('unable.md', 'utf8');
-              } catch {}
+              const reason = process.env.UNABLE_REASON || 'The fix requires changes outside the coding agent scope.';
               comment += `The coding agent determined it **cannot automatically fix** this issue.\n\n`;
               comment += `${reason}\n\n`;
               comment += 'A maintainer will need to address this manually.';
