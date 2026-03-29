@@ -272,7 +272,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
 
-          # Stage only tracked file changes (not agent artifacts)
+          # Squash all changes since baseline into the working tree.
+          # Copilot CLI may have committed changes directly, so git add -A
+          # alone would find "nothing to commit". Soft-reset collapses
+          # agent commits + unstaged edits into staged changes.
+          BASELINE="${{ steps.baseline.outputs.sha }}"
+          git reset --soft "$BASELINE"
+
           git add -A
           # Remove any agent artifacts that got staged
           git reset HEAD -- summary.md unable.md coding-input.md source-files.txt copilot-output.txt copilot-stderr.log 2>/dev/null || true
