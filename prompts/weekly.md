@@ -7,11 +7,13 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 
 **Idempotency:** Check `~/Documents/dayarc/memory/runs/{today}-weekly.json`. If it exists, STOP — already ran.
 
-**Pure distillation:** Do NOT query Work IQ or GitHub for raw data. Synthesize ONLY from memory files.
+**Pure distillation:** Do NOT query Work IQ or GitHub for raw data. Synthesize ONLY from memory files. *(Exception: bootstrap run — see Step 1.)*
 
 ---
 
 ## Step 1: READ
+
+**Bootstrap check:** Use **dayarc-memory** to check if `weekly-summary-current.json` exists. If it does **not** exist, this is a **bootstrap weekly run** — override the "Pure distillation" rule and query **Work IQ** for the last **14 days** of sent emails, Teams messages, meetings, and edited documents to supplement any sparse daily profiles. Label this data as bootstrap context in the synthesis step.
 
 Via **dayarc-memory**, read:
 - All files in `daily/` directory (up to 5 daily profiles, Mon–Fri)

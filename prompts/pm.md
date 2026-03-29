@@ -33,20 +33,22 @@ If no replies found, continue to Step 1.
 
 ## Step 1: COLLECT
 
-Query **Work IQ** (ask_work_iq) for today's data:
-- "What emails did I send today?"
-- "What Teams messages did I send today?"
+**Bootstrap check:** Use **dayarc-memory** to list files in `daily/`. If no `daily-profile-*.json` files exist, this is a **bootstrap run** — set `LOOKBACK = 7 days` and use `"last 7 days"` as the query window for all Work IQ and GitHub queries below. Otherwise set `LOOKBACK = today`.
+
+Query **Work IQ** (ask_work_iq) for data over the LOOKBACK window:
+- "What emails did I send {LOOKBACK}?"
+- "What Teams messages did I send {LOOKBACK}?"
 - "What emails are flagged in my inbox?"
 - "What Teams messages have I saved?"
-- "What meetings did I have today?"
-- "What documents did I edit today?"
+- "What meetings did I have {LOOKBACK}?"
+- "What documents did I edit {LOOKBACK}?"
 
-Query **GitHub MCP** (authenticated account) for today's data:
-- Commits authored today
-- PRs opened or reviewed today
-- Issues commented on or closed today
-- Reviews submitted today
-- **Notifications:** search for `reason:mention`, `reason:review_requested`, `reason:assign` since this morning — these are high-priority signals the user may have missed
+Query **GitHub MCP** (authenticated account) for data over the LOOKBACK window:
+- Commits authored {LOOKBACK}
+- PRs opened or reviewed {LOOKBACK}
+- Issues commented on or closed {LOOKBACK}
+- Reviews submitted {LOOKBACK}
+- **Notifications:** search for `reason:mention`, `reason:review_requested`, `reason:assign` since the start of the LOOKBACK window — these are high-priority signals the user may have missed
 
 **Note:** For non-active GitHub accounts (e.g. EMU/corp), notification emails are captured by Work IQ via Outlook. Cross-reference both sources.
 
@@ -73,7 +75,7 @@ Produce brief sections:
 ## Step 4: WRITE
 
 Via **dayarc-memory**:
-1. Write `daily/daily-profile-{today}.json` — the updated daily profile from learn_user_profile.
+1. Write `daily/daily-profile-{today}.json` — the updated daily profile from learn_user_profile. If this is a bootstrap run, set `"bootstrap": true` in the profile so the AM brief can label signals as 'initial calibration' rather than drift alerts.
 2. Write `runs/{today}-pm.json` — run tag with `{ "timestamp": "{ISO datetime}", "type": "pm" }`.
 
 **MUST complete Step 4 before Step 5.**
