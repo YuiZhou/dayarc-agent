@@ -315,3 +315,27 @@ Write-Host   "  Agent:    $agentDir"
 Write-Host   "  Data:     $dataDir"
 Write-Host   "  Start:    copilot --agent=dayarc"
 Write-Host   ""
+
+# ── Dry-run preview ──────────────────────────────────────────────────────────
+
+Write-Step "Preview brief (optional)"
+Write-Host "  Your first real brief will arrive at 8 PM." -ForegroundColor DarkGray
+Write-Host "  Want to see a preview now? This won't send email or write any data." -ForegroundColor DarkGray
+Write-Host ""
+
+$dryrun = Read-Host "    Run a dry-run PM brief now? [y/N]"
+if ($dryrun -match '^[Yy]') {
+    Write-Host ""
+    Write-Host "  Running dry-run brief (this may take 1-2 minutes)..." -ForegroundColor Cyan
+    Write-Host ""
+    $pmPrompt = Get-Content (Join-Path $agentDir "prompts\pm.md") -Raw
+    $dryrunPrompt = "## DRY RUN MODE`nThis is a preview. Follow the plan below but: skip the idempotency check, do NOT send email (skip Step 5), do NOT write memory files or run tags (skip Step 4). Output the brief to the terminal only. After displaying the brief, ask if the user wants to adjust anything.`n`n$pmPrompt"
+    Push-Location $dataDir
+    try {
+        copilot --agent=dayarc --prompt $dryrunPrompt
+    } finally {
+        Pop-Location
+    }
+} else {
+    Write-Skip "Skipped — your first brief arrives at 8 PM tonight"
+}
