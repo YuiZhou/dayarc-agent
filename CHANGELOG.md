@@ -4,6 +4,7 @@
 
 ### Added
 - `setup.ps1` — One-line installer (`irm .../setup.ps1 | iex`), upgrade, and uninstall
+- `setup.ps1` dry-run offer — After install, prompts user to preview their first brief (reuses `pm.md` with side effects disabled)
 - `dayarc-upgrade` skill — Conversational agent updates ("Update your skills")
 - `dayarc-report-issue` skill — File bug reports and feature requests on the Dayarc repo
 - `.github/ISSUE_TEMPLATE/` — Bug report and feature request templates
