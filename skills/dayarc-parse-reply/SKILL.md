@@ -23,6 +23,10 @@ Only parse the text **above** the first separator.
     "action": "mark_done",
     "target": "auth migration",
     "detail": "User says auth migration is complete"
+  }],
+  "quality_signals": [{
+    "sentiment": "negative",
+    "detail": "too much noise in inbox section"
   }]
 }
 ```
@@ -33,15 +37,20 @@ Only parse the text **above** the first separator.
    - **remove**: "drop X", "remove X", "X is no longer relevant", "ignore X"
    - **add_priority**: "add X as priority", "X should be tracked", "new priority: X"
    - **correct**: "X is wrong, it should be Y", "actually X is ...", "correction: ..."
-2. Ignore non-actionable replies: "thanks", "looks good", "ok", "got it", "👍".
-3. If no actionable content found, return empty corrections array.
+2. Parse quality signals — replies that evaluate the brief itself (not specific items). Classify sentiment and extract detail:
+   - **positive**: "great brief", "good brief", "this is helpful", "spot on", "exactly right", "loved the summary", "perfect"
+   - **negative**: "too much noise", "priorities were off", "missed my X work", "not relevant", "wrong focus", "too long", "cluttered", "irrelevant", "missed X"
+   - Map each match to `{ sentiment: "positive"|"negative", detail: "<normalized phrase or quoted fragment>" }`.
+3. Ignore non-actionable replies: "thanks", "looks good", "ok", "got it", "👍". These produce neither a correction nor a quality signal.
+4. A reply may contain both corrections and quality signals — extract all.
+5. If no actionable content found, return empty arrays for both `corrections` and `quality_signals`.
 
 ## Examples
 
 **Single correction:**
 ```
 Input: "Auth migration is done, shipped yesterday"
-Output: { "corrections": [{ "action": "mark_done", "target": "auth migration", "detail": "Shipped yesterday" }] }
+Output: { "corrections": [{ "action": "mark_done", "target": "auth migration", "detail": "Shipped yesterday" }], "quality_signals": [] }
 ```
 
 **Multiple corrections:**
@@ -51,7 +60,8 @@ Output: {
   "corrections": [
     { "action": "remove", "target": "perf review prep", "detail": "Cancelled" },
     { "action": "add_priority", "target": "quarterly OKR planning", "detail": "New priority from user" }
-  ]
+  ],
+  "quality_signals": []
 }
 ```
 
@@ -67,11 +77,32 @@ Subject: 🌙 PM Brief — Mon 24 Mar
 Section A: What you accomplished today
 ..."
 
-Output: { "corrections": [{ "action": "mark_done", "target": "cost optimization", "detail": "User confirmed done" }] }
+Output: { "corrections": [{ "action": "mark_done", "target": "cost optimization", "detail": "User confirmed done" }], "quality_signals": [] }
+```
+
+**Quality signal (positive):**
+```
+Input: "Great brief today, really useful"
+Output: { "corrections": [], "quality_signals": [{ "sentiment": "positive", "detail": "great brief, really useful" }] }
+```
+
+**Quality signal (negative):**
+```
+Input: "Too much noise in the inbox section, priorities were off"
+Output: { "corrections": [], "quality_signals": [{ "sentiment": "negative", "detail": "too much noise in inbox section" }, { "sentiment": "negative", "detail": "priorities were off" }] }
+```
+
+**Mixed correction and quality signal:**
+```
+Input: "Auth migration is done. Also the brief missed my PR review work."
+Output: {
+  "corrections": [{ "action": "mark_done", "target": "auth migration", "detail": "User confirmed done" }],
+  "quality_signals": [{ "sentiment": "negative", "detail": "missed PR review work" }]
+}
 ```
 
 **No-op reply:**
 ```
 Input: "Looks good, thanks!"
-Output: { "corrections": [] }
+Output: { "corrections": [], "quality_signals": [] }
 ```

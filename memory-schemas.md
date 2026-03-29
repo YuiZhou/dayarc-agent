@@ -54,7 +54,11 @@
       "description": "Cost optimization proposal review",
       "source_breadcrumb": "Outlook: Re: Cost optimization review"
     }
-  ]
+  ],
+  "feedback": {
+    "sentiment": "negative",
+    "detail": "too much noise in inbox section"
+  }
 }
 ```
 
@@ -69,6 +73,7 @@
 | `active_threads` | array | ✅ | Open work items. Status: "in_progress", "waiting", "blocked". Increment days_open daily. |
 | `priorities_today` | array | ✅ | From infer_priorities output. |
 | `unfinished` | array | ✅ | Items lacking completion signal. Each needs source_breadcrumb. |
+| `feedback` | object | Optional | Quality signal from user's reply: `{ sentiment: "positive"\|"negative", detail: string }`. Written by parse_reply (Step 0) when a quality signal is detected; omitted if reply contained no quality signal. |
 
 ---
 
@@ -104,7 +109,13 @@
   ],
   "absorbed_from_previous": [
     "Cost optimization proposal (carried from prev week)"
-  ]
+  ],
+  "brief_quality": {
+    "rated": 3,
+    "positive": 2,
+    "negative": 1,
+    "themes": ["too much noise in inbox"]
+  }
 }
 ```
 
@@ -118,6 +129,7 @@
 | `stuck_items` | array | ✅ | Unfinished 2+ days. days_carried = count of days item appeared. |
 | `suggested_focus_next_week` | array | ✅ | 3–5 suggestions from momentum + stuck. |
 | `absorbed_from_previous` | array | Optional | Unresolved items absorbed from previous week's summary. |
+| `brief_quality` | object | Optional | Aggregated brief quality from `feedback` fields in daily profiles: `{ rated, positive, negative, themes[] }`. Omitted if no daily profiles had feedback this week. |
 
 ---
 
@@ -160,7 +172,13 @@
   ],
   "absorbed_from_previous": [
     "ARM CI pipeline (carried from prev month)"
-  ]
+  ],
+  "brief_quality": {
+    "rated": 12,
+    "positive": 9,
+    "negative": 3,
+    "themes": ["too much noise in inbox", "priorities were off"]
+  }
 }
 ```
 
@@ -175,6 +193,7 @@
 | `learning_progress` | array | ✅ | Topics with trajectory and recommendation. |
 | `outlook_next_month` | array | ✅ | 3–5 focus areas. |
 | `absorbed_from_previous` | array | Optional | Unresolved items from previous month. |
+| `brief_quality` | object | Optional | Aggregated brief quality rolled up from weekly `brief_quality` fields: `{ rated, positive, negative, themes[] }`. Omitted if no weekly summaries had quality data. |
 
 ---
 
