@@ -95,78 +95,104 @@ if ($outlook) {
     Write-Host "  ⚠ Outlook is not running (needed for sending email briefs)" -ForegroundColor Yellow
 }
 
-# ── Clone or Pull ────────────────────────────────────────────────────────────
+# ── Detect plugin install ─────────────────────────────────────────────────────
 
-Write-Step "Agent package → $agentDir"
-
-if (Test-Path (Join-Path $agentDir ".git")) {
-    # Existing install — upgrade
-    Write-Host "  Existing install detected — pulling updates..." -ForegroundColor DarkGray
-    Push-Location $agentDir
-    try {
-        git fetch origin main 2>&1 | Out-Null
-        $local  = git rev-parse HEAD
-        $remote = git rev-parse origin/main
-        if ($local -eq $remote) {
-            Write-Ok "Already up to date ($($local.Substring(0,7)))"
-        } else {
-            $result = git pull --ff-only origin main 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                $newCommits = git log "$local..HEAD" --oneline
-                Write-Ok "Updated: $($newCommits.Count) new commit(s)"
-                $newCommits | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-            } else {
-                Write-Err "Fast-forward failed — local changes detected"
-                Write-Host "    Run: Remove-Item '$agentDir' -Recurse -Force" -ForegroundColor DarkGray
-                Write-Host "    Then re-run this setup script." -ForegroundColor DarkGray
-                Pop-Location
-                return
-            }
-        }
-    } finally {
-        Pop-Location
+$pluginDir = $null
+# Check if dayarc is installed as a Copilot CLI plugin
+$pluginCandidates = @(
+    (Join-Path $HOME ".copilot\installed-plugins\_direct")
+    (Join-Path $HOME ".copilot\installed-plugins\*\dayarc")
+)
+foreach ($candidate in $pluginCandidates) {
+    $resolved = Get-Item $candidate -ErrorAction SilentlyContinue | Where-Object {
+        Test-Path (Join-Path $_.FullName "plugin.json")
+    } | Select-Object -First 1
+    if ($resolved) {
+        $pluginDir = $resolved.FullName
+        break
     }
+}
+
+if ($pluginDir) {
+    # Plugin install detected — use plugin dir as agent dir, skip clone + copy
+    Write-Step "Agent package (plugin)"
+    Write-Ok "Installed as Copilot plugin at $pluginDir"
+    $agentDir = $pluginDir
+
 } else {
-    # Fresh install
-    if (Test-Path $agentDir) {
-        Write-Host "  Removing non-git directory at $agentDir..." -ForegroundColor DarkGray
-        Remove-Item $agentDir -Recurse -Force
+    # ── Clone or Pull ────────────────────────────────────────────────────────
+
+    Write-Step "Agent package → $agentDir"
+
+    if (Test-Path (Join-Path $agentDir ".git")) {
+        # Existing install — upgrade
+        Write-Host "  Existing install detected — pulling updates..." -ForegroundColor DarkGray
+        Push-Location $agentDir
+        try {
+            git fetch origin main 2>&1 | Out-Null
+            $local  = git rev-parse HEAD
+            $remote = git rev-parse origin/main
+            if ($local -eq $remote) {
+                Write-Ok "Already up to date ($($local.Substring(0,7)))"
+            } else {
+                $result = git pull --ff-only origin main 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    $newCommits = git log "$local..HEAD" --oneline
+                    Write-Ok "Updated: $($newCommits.Count) new commit(s)"
+                    $newCommits | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+                } else {
+                    Write-Err "Fast-forward failed — local changes detected"
+                    Write-Host "    Run: Remove-Item '$agentDir' -Recurse -Force" -ForegroundColor DarkGray
+                    Write-Host "    Then re-run this setup script." -ForegroundColor DarkGray
+                    Pop-Location
+                    return
+                }
+            }
+        } finally {
+            Pop-Location
+        }
+    } else {
+        # Fresh install
+        if (Test-Path $agentDir) {
+            Write-Host "  Removing non-git directory at $agentDir..." -ForegroundColor DarkGray
+            Remove-Item $agentDir -Recurse -Force
+        }
+        git clone $repoUrl $agentDir 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "Clone failed. Check network and repo access."
+            return
+        }
+        $hash = (git -C $agentDir rev-parse --short HEAD)
+        Write-Ok "Cloned ($hash)"
     }
-    git clone $repoUrl $agentDir 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "Clone failed. Check network and repo access."
-        return
+
+    # ── Symlink agent + skills into ~/.copilot/ ──────────────────────────────
+
+    Write-Step "Registering with Copilot CLI"
+
+    $copilotDir = Join-Path $HOME ".copilot"
+    $copilotAgents = Join-Path $copilotDir "agents"
+    $copilotSkills = Join-Path $copilotDir "skills"
+
+    # Ensure directories exist
+    foreach ($d in @($copilotAgents, $copilotSkills)) {
+        if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
     }
-    $hash = (git -C $agentDir rev-parse --short HEAD)
-    Write-Ok "Cloned ($hash)"
+
+    # Copy agent profile
+    Copy-Item (Join-Path $agentDir "agents\dayarc.agent.md") (Join-Path $copilotAgents "dayarc.agent.md") -Force
+    Write-Ok "Agent profile → ~/.copilot/agents/dayarc.agent.md"
+
+    # Copy skills
+    $skillSrc = Join-Path $agentDir "skills"
+    Get-ChildItem $skillSrc -Directory | ForEach-Object {
+        $dest = Join-Path $copilotSkills $_.Name
+        if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+        Copy-Item $_.FullName $dest -Recurse -Force
+    }
+    $skillCount = (Get-ChildItem $skillSrc -Directory).Count
+    Write-Ok "$skillCount skills → ~/.copilot/skills/"
 }
-
-# ── Symlink agent + skills into ~/.copilot/ ──────────────────────────────────
-
-Write-Step "Registering with Copilot CLI"
-
-$copilotDir = Join-Path $HOME ".copilot"
-$copilotAgents = Join-Path $copilotDir "agents"
-$copilotSkills = Join-Path $copilotDir "skills"
-
-# Ensure directories exist
-foreach ($d in @($copilotAgents, $copilotSkills)) {
-    if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
-}
-
-# Copy agent profile
-Copy-Item (Join-Path $agentDir "agents\dayarc.agent.md") (Join-Path $copilotAgents "dayarc.agent.md") -Force
-Write-Ok "Agent profile → ~/.copilot/agents/dayarc.agent.md"
-
-# Copy skills
-$skillSrc = Join-Path $agentDir "skills"
-Get-ChildItem $skillSrc -Directory | ForEach-Object {
-    $dest = Join-Path $copilotSkills $_.Name
-    if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
-    Copy-Item $_.FullName $dest -Recurse -Force
-}
-$skillCount = (Get-ChildItem $skillSrc -Directory).Count
-Write-Ok "$skillCount skills → ~/.copilot/skills/"
 
 # ── User config ──────────────────────────────────────────────────────────────
 

@@ -13,7 +13,27 @@
 
 ## Installation
 
-### One-line install
+### Plugin install (recommended)
+
+```bash
+copilot plugin install YuiZhou/dayarc-agent
+```
+
+This installs the Dayarc agent, 11 skills, and MCP server config via the Copilot CLI plugin system.
+
+Then run setup for user config + scheduler:
+
+```powershell
+irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
+```
+
+The setup script detects the plugin install, skips cloning/copying, and only handles:
+4. **Prompt** for your identity → write `~/Documents/dayarc/config.json`
+5. **Offer scheduler** — optional Task Scheduler entries (AM 8:00 + PM 20:00, Mon–Fri)
+
+### Setup script only
+
+If you prefer a single command that does everything:
 
 ```powershell
 irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
@@ -31,7 +51,10 @@ Re-running the script upgrades the agent (pulls latest) and skips already-config
 ### Uninstall
 
 ```powershell
-# Download and run with -uninstall flag
+# Plugin uninstall
+copilot plugin uninstall dayarc
+
+# Remove scheduler + agent dir (user data preserved)
 $setup = (Invoke-WebRequest https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1).Content
 & ([scriptblock]::Create($setup)) -uninstall
 ```
@@ -40,10 +63,9 @@ Removes scheduler tasks and agent directory. User data (`~/Documents/dayarc/`) i
 
 ### Upgrade
 
-Two ways to upgrade:
-
 | Method | How |
 |--------|-----|
+| **Plugin update** | `copilot plugin update dayarc` |
 | **Conversational** | Start `copilot --agent=dayarc` and say `Update your skills` |
 | **Re-run setup** | `irm .../setup.ps1 \| iex` — detects existing install, does `git pull`, skips config |
 

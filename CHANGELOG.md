@@ -3,6 +3,7 @@
 ## [Unreleased] — 2026-03-17
 
 ### Added
+- `plugin.json` — Copilot CLI plugin manifest; enables `copilot plugin install YuiZhou/dayarc-agent`
 - `setup.ps1` — One-line installer (`irm .../setup.ps1 | iex`), upgrade, and uninstall
 - `setup.ps1` dry-run offer — After install, prompts user to preview their first brief (reuses `pm.md` with side effects disabled)
 - `dayarc-upgrade` skill — Conversational agent updates ("Update your skills")

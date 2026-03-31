@@ -14,19 +14,33 @@ An AI agent that collects signals from M365 and GitHub, learns your work pattern
 
 ## Quick Start
 
+### Option A: Plugin install (recommended)
+
+```bash
+copilot plugin install YuiZhou/dayarc-agent
+```
+
+Then run setup for user config + scheduler:
+
 ```powershell
 irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
 ```
 
-This clones the agent, prompts for your identity, and optionally installs the daily scheduler. Then:
+### Option B: Setup script only
+
+```powershell
+irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
+```
+
+This clones the agent, registers skills, prompts for your identity, and optionally installs the daily scheduler. Then:
 
 ```bash
 copilot --agent=dayarc
 ```
 
-To upgrade later: ask `> Update your skills` in a conversation, or re-run the setup one-liner.
+To upgrade: `copilot plugin update dayarc` (plugin) or ask `> Update your skills` in a conversation.
 
-To uninstall: `setup.ps1 -uninstall` (user data preserved).
+To uninstall: `copilot plugin uninstall dayarc` + `setup.ps1 -uninstall` (user data preserved).
 
 ## What It Does
 

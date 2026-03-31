@@ -1,0 +1,15 @@
+{
+  "name": "dayarc",
+  "description": "Personal daily briefing system — collects M365 and GitHub signals, learns work patterns, and delivers personalized email briefs via Outlook.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Yu Zhou"
+  },
+  "homepage": "https://github.com/YuiZhou/dayarc-agent",
+  "repository": "https://github.com/YuiZhou/dayarc-agent",
+  "license": "MIT",
+  "keywords": ["briefing", "productivity", "outlook", "m365", "github"],
+  "agents": "agents/",
+  "skills": "skills/",
+  "mcpServers": "mcp.json"
+}
