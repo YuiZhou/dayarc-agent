@@ -4,6 +4,7 @@
 
 ### Added
 - `plugin.json` — Copilot CLI plugin manifest; enables `copilot plugin install YuiZhou/dayarc-agent`
+- `dayarc-setup` skill — Agent-guided interactive setup on first launch (creates dirs, collects identity, writes config.json, offers scheduler)
 - `setup.ps1` — One-line installer (`irm .../setup.ps1 | iex`), upgrade, and uninstall
 - `setup.ps1` dry-run offer — After install, prompts user to preview their first brief (reuses `pm.md` with side effects disabled)
 - `dayarc-upgrade` skill — Conversational agent updates ("Update your skills")
@@ -19,8 +20,12 @@
 
 ### Changed
 - Renamed the product, agent package, skill paths, prompts, scheduler task names, and document paths from Briefing to Dayarc
-- Installation docs rewritten for one-line setup
-- Agent now has 11 skills (was 9)
+- **First-run detection** in agent profile: checks for `config.json` on every conversation start; triggers setup skill if missing
+- **Plugin-first install flow**: `copilot plugin install` + first launch replaces the two-step install
+- `scheduler.ps1` now discovers agent dir dynamically (plugin or git clone)
+- `dayarc-upgrade` skill supports both plugin updates and git-based upgrades
+- Installation docs rewritten for plugin-first flow
+- Agent now has 12 skills (was 9)
 
 ## [1.0.0] — 2026-03-17
 

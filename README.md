@@ -14,33 +14,24 @@ An AI agent that collects signals from M365 and GitHub, learns your work pattern
 
 ## Quick Start
 
-### Option A: Plugin install (recommended)
-
 ```bash
 copilot plugin install YuiZhou/dayarc-agent
-```
-
-Then run setup for user config + scheduler:
-
-```powershell
-irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
-```
-
-### Option B: Setup script only
-
-```powershell
-irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
-```
-
-This clones the agent, registers skills, prompts for your identity, and optionally installs the daily scheduler. Then:
-
-```bash
 copilot --agent=dayarc
 ```
 
-To upgrade: `copilot plugin update dayarc` (plugin) or ask `> Update your skills` in a conversation.
+On first launch, Dayarc detects it hasn't been configured yet and walks you through setup — creating your data folder, asking for your identity, and optionally registering the daily scheduler. No separate setup script needed.
 
-To uninstall: `copilot plugin uninstall dayarc` + `setup.ps1 -uninstall` (user data preserved).
+### Alternative: Script install
+
+```powershell
+irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
+```
+
+This clones the agent, registers skills, prompts for your identity, and optionally installs the daily scheduler.
+
+To upgrade: `copilot plugin update dayarc` (plugin) or ask `> upgrade` in a conversation.
+
+To uninstall: `copilot plugin uninstall dayarc` (user data preserved at `~/Documents/dayarc/`).
 
 ## What It Does
 
@@ -61,9 +52,9 @@ All briefs include source breadcrumbs (links, thread subjects, channel names) fo
 ## Architecture
 
 ```
-~/.dayarc-agent/                        (agent package — installed per machine)
+~/.copilot/installed-plugins/.../dayarc/    (agent package — via plugin install)
 ├── agents/dayarc.agent.md              Agent identity + rules
-├── skills/dayarc-*/SKILL.md            11 skill definitions
+├── skills/dayarc-*/SKILL.md            12 skill definitions (incl. setup)
 ├── skills/dayarc-deliver/templates/    4 HTML email templates
 ├── prompts/{pm,am,weekly,monthly}.md     Plan instructions
 ├── memory-schemas.md                     Memory file schemas

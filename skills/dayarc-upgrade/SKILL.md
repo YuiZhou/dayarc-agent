@@ -7,15 +7,47 @@ description: Check for and apply updates to the Dayarc agent package from GitHub
 
 User asks to update, upgrade, or check for new versions of the agent — including upgrading to a specific branch or commit, or returning to stable `main`.
 
-## Detecting Preview Mode
+## Detecting Install Method
 
-At the start of every run, check whether `~/.dayarc-agent/.preview` exists. If it does, warn the user:
+First, determine how Dayarc was installed:
+
+```powershell
+# Check plugin install
+$pluginHit = Get-ChildItem -Path (Join-Path $HOME ".copilot\installed-plugins") -Filter "plugin.json" -Recurse -ErrorAction SilentlyContinue | Where-Object {
+    (Get-Content $_.FullName -Raw | ConvertFrom-Json).name -eq "dayarc"
+} | Select-Object -First 1
+
+# Check git clone
+$cloneDir = Join-Path $HOME ".dayarc-agent"
+$isClone = Test-Path (Join-Path $cloneDir ".git")
+```
+
+- **Plugin install** → `$pluginHit` exists → use `copilot plugin update dayarc`
+- **Git clone** → `$isClone` is true → use git-based upgrade (below)
+- **Neither found** → tell user to reinstall
+
+## Plugin Upgrade
+
+If installed as a plugin, upgrades are simple:
+
+```powershell
+copilot plugin update dayarc
+```
+
+After update, check for scheduler re-registration (see **After Update** section).
+
+Report:
+> ✅ Plugin updated. {changelog summary}
+
+**Preview branches are not supported for plugin installs.** If the user asks for a preview branch, tell them to use the git clone install method instead.
+
+## Git Clone Upgrade
+
+### Detecting Preview Mode
+
+Check whether `~/.dayarc-agent/.preview` exists. If it does, warn the user:
 
 > ⚠️ **Preview build active** — you are running a pre-release commit (`<contents of .preview>`). This build may be unstable. Say *"upgrade to stable"* to return to `main`.
-
-## How It Works
-
-The agent package lives in `~/.dayarc-agent/` and is a git clone of the repo. Upgrades are a fast-forward pull.
 
 ### Check for Updates
 
@@ -110,14 +142,16 @@ Then run **After Update** steps as normal. Report:
 ### After Update
 
 1. Read `CHANGELOG.md` and summarize what changed since the previous HEAD.
-2. Copy updated files to `~/.copilot/` (agent profile + skills).
-3. **Re-register scheduler if this machine owns one:** Read `~/Documents/dayarc/config.json`. The `scheduler` field is an array of `{ machine, am_time, pm_time }` entries. Find the entry where `machine` matches `$env:COMPUTERNAME`. If found, re-register the Task Scheduler tasks with that entry's times:
+2. **Git clone only:** Copy updated files to `~/.copilot/` (agent profile + skills). Skip for plugin installs — the plugin system handles this.
+3. **Re-register scheduler if this machine owns one:** Read `~/Documents/dayarc/config.json`. The `scheduler` field is an array of `{ machine, am_time, pm_time }` entries. Find the entry where `machine` matches `$env:COMPUTERNAME`. If found, find the `scheduler.ps1` path (same discovery logic as the scheduler script itself) and re-register:
    ```powershell
-   $script = Join-Path $HOME ".dayarc-agent" "scheduler.ps1"
-   # Unregister old tasks
+   # Find scheduler.ps1 (plugin or clone)
+   $pluginHit = Get-ChildItem -Path (Join-Path $HOME ".copilot\installed-plugins") -Filter "scheduler.ps1" -Recurse -ErrorAction SilentlyContinue | Where-Object { (Split-Path $_.DirectoryName -Leaf) -ne "skills" } | Select-Object -First 1
+   if ($pluginHit) { $script = $pluginHit.FullName }
+   else { $script = Join-Path $HOME ".dayarc-agent\scheduler.ps1" }
+
    Unregister-ScheduledTask -TaskName "Dayarc-AM" -Confirm:$false -ErrorAction SilentlyContinue
    Unregister-ScheduledTask -TaskName "Dayarc-PM" -Confirm:$false -ErrorAction SilentlyContinue
-   # Re-register with updated script
    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
    Register-ScheduledTask -TaskName "Dayarc-AM" -Action (New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -File `"$script`" -trigger am") -Trigger (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At $amTime) -Settings $settings -Description "Dayarc morning brief"
    Register-ScheduledTask -TaskName "Dayarc-PM" -Action (New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -File `"$script`" -trigger pm") -Trigger (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At $pmTime) -Settings $settings -Description "Dayarc evening brief"
@@ -128,4 +162,5 @@ Then run **After Update** steps as normal. Report:
 
 ### Version
 
-To report current version: `git describe --tags --always` in `~/.dayarc-agent/`.
+- **Git clone:** `git describe --tags --always` in `~/.dayarc-agent/`.
+- **Plugin:** `copilot plugin list` or read `plugin.json` version field.
