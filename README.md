@@ -16,7 +16,7 @@ An AI agent that collects signals from M365 and GitHub, learns your work pattern
 
 ```bash
 copilot plugin install YuiZhou/dayarc-agent
-copilot --agent=dayarc
+copilot --agent=dayarc:dayarc
 ```
 
 On first launch, Dayarc detects it hasn't been configured yet and walks you through setup — creating your data folder, asking for your identity, and optionally registering the daily scheduler. No separate setup script needed.
