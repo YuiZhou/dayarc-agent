@@ -22,7 +22,32 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$agentDir = Join-Path $HOME ".dayarc-agent"
+# ── Discover agent package location ──────────────────────────────────────────
+# Plugin install: lives under ~/.copilot/installed-plugins/
+# Git clone:      lives at ~/.dayarc-agent/
+$agentDir = $null
+
+# Check plugin install first
+$pluginHit = Get-ChildItem -Path (Join-Path $HOME ".copilot\installed-plugins") -Filter "scheduler.ps1" -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { (Split-Path $_.DirectoryName -Leaf) -ne "skills" } |
+    Select-Object -First 1
+if ($pluginHit) {
+    $agentDir = $pluginHit.DirectoryName
+}
+
+# Fall back to git clone
+if (-not $agentDir) {
+    $cloneDir = Join-Path $HOME ".dayarc-agent"
+    if (Test-Path (Join-Path $cloneDir "scheduler.ps1")) {
+        $agentDir = $cloneDir
+    }
+}
+
+if (-not $agentDir) {
+    Write-Host "[Dayarc] ERROR: Cannot find agent package. Reinstall with: copilot plugin install YuiZhou/dayarc-agent"
+    exit 1
+}
+
 $profileDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "dayarc"
 
 function Is-LastWorkday {

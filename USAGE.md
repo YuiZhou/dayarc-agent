@@ -13,25 +13,32 @@
 
 ## Installation
 
-### One-line install
+### Plugin install (recommended)
+
+```bash
+copilot plugin install YuiZhou/dayarc-agent
+copilot --agent=dayarc
+```
+
+On first launch, the agent detects it hasn't been configured and walks you through setup interactively — creating your data folder, asking for your identity, and optionally registering the daily scheduler. No separate setup script needed.
+
+### Setup script (alternative)
+
+If you prefer a non-interactive script that does everything in one pass:
 
 ```powershell
 irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
 ```
 
-The setup script will:
-1. **Preflight** — verify `git`, `gh auth`, Copilot CLI, and Outlook
-2. **Clone** `~/.dayarc-agent/` (or `git pull` if already installed)
-3. **Register** agent profile + 11 skills with Copilot CLI
-4. **Prompt** for your identity → write `~/Documents/dayarc/config.json`
-5. **Offer scheduler** — optional Task Scheduler entries (AM 8:00 + PM 20:00, Mon–Fri)
-
-Re-running the script upgrades the agent (pulls latest) and skips already-configured steps.
+This clones the agent, registers skills, prompts for your identity, and optionally installs the daily scheduler.
 
 ### Uninstall
 
 ```powershell
-# Download and run with -uninstall flag
+# Plugin uninstall
+copilot plugin uninstall dayarc
+
+# Or: remove scheduler + agent dir (user data preserved)
 $setup = (Invoke-WebRequest https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1).Content
 & ([scriptblock]::Create($setup)) -uninstall
 ```
@@ -40,19 +47,19 @@ Removes scheduler tasks and agent directory. User data (`~/Documents/dayarc/`) i
 
 ### Upgrade
 
-Two ways to upgrade:
-
 | Method | How |
 |--------|-----|
-| **Conversational** | Start `copilot --agent=dayarc` and say `Update your skills` |
+| **Plugin update** | `copilot plugin update dayarc` |
+| **Conversational** | Start `copilot --agent=dayarc` and say `upgrade` |
 | **Re-run setup** | `irm .../setup.ps1 \| iex` — detects existing install, does `git pull`, skips config |
 
 ### Migrate to a new machine
 
-User data syncs automatically via OneDrive — just run the one-line install on the new machine:
+User data syncs automatically via OneDrive — just install the plugin on the new machine:
 
-```powershell
-irm https://raw.githubusercontent.com/YuiZhou/dayarc-agent/main/setup.ps1 | iex
+```bash
+copilot plugin install YuiZhou/dayarc-agent
+copilot --agent=dayarc     # agent detects synced data, skips setup
 # Then: gh auth login + sign in to Outlook
 ```
 
@@ -61,9 +68,9 @@ Memory, config, and preferences are already there via OneDrive.
 ### What gets installed
 
 ```
-~/.dayarc-agent/                          (git clone — agent package)
+~/.copilot/installed-plugins/.../dayarc/  (agent package — via plugin install)
 ├── agents/dayarc.agent.md
-├── skills/dayarc-*/SKILL.md              11 skill definitions
+├── skills/dayarc-*/SKILL.md              12 skill definitions (incl. setup)
 ├── skills/dayarc-deliver/templates/      4 HTML email templates
 ├── prompts/{pm,am,weekly,monthly}.md
 ├── memory-schemas.md
@@ -74,9 +81,6 @@ Memory, config, and preferences are already there via OneDrive.
 ~/Documents/dayarc/                       (user data — OneDrive synced)
 ├── config.json                           Identity + preferences
 └── memory/                               JSON memory files
-
-~/.copilot/agents/dayarc.agent.md         (registered with Copilot CLI)
-~/.copilot/skills/dayarc-*/               (registered skills)
 ```
 
 ---
@@ -221,18 +225,24 @@ The agent tracks your learning interests from outgoing signals (emails, PRs, Tea
 
 ## Scheduled mode (automated)
 
-For fully automated daily briefs, register the scheduler (see [Installation §3](#3-optional-scheduler)):
+The scheduler is registered during setup (either agent-guided or via setup.ps1). It creates two Task Scheduler entries:
+
+- **Dayarc-AM** — 8:00 AM, Mon–Fri
+- **Dayarc-PM** — 8:00 PM, Mon–Fri
+
+To manage manually:
 
 ```powershell
-$script = Join-Path $HOME ".dayarc-agent\scheduler.ps1"
-
-# Register (Mon–Fri)
-schtasks /create /tn "Dayarc-AM" /tr "powershell -File $script -trigger am" /sc weekly /d MON,TUE,WED,THU,FRI /st 08:00
-schtasks /create /tn "Dayarc-PM" /tr "powershell -File $script -trigger pm" /sc weekly /d MON,TUE,WED,THU,FRI /st 20:00
+# Check status
+Get-ScheduledTask -TaskName "Dayarc-AM","Dayarc-PM" | Format-Table TaskName, State
 
 # Unregister
-schtasks /delete /tn "Dayarc-AM" /f
-schtasks /delete /tn "Dayarc-PM" /f
+Unregister-ScheduledTask -TaskName "Dayarc-AM" -Confirm:$false
+Unregister-ScheduledTask -TaskName "Dayarc-PM" -Confirm:$false
+
+# Re-register (ask the agent)
+copilot --agent=dayarc
+> Set up the scheduler
 ```
 
 Scheduled runs are **authoritative**: they send email, write memory, and write run tags. If a scheduled run already completed for a given date+type, it won't re-send (idempotent).
