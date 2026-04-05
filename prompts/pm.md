@@ -33,24 +33,36 @@ If no replies found, continue to Step 1.
 
 ## Step 1: COLLECT
 
-**Bootstrap check:** Use **dayarc-memory** to list files in `daily/`. If no `daily-profile-*.json` files exist, this is a **bootstrap run** — set `LOOKBACK = 7 days` and use `"last 7 days"` as the query window for all Work IQ and GitHub queries below. Otherwise set `LOOKBACK = today`.
+**Bootstrap check:** Use **dayarc-memory** to list files in `daily/`. If no `daily-profile-*.json` files exist, this is a **bootstrap run** — set `LOOKBACK = 7 days` and use `"last 7 days"` as the query window for all connector queries below. Otherwise set `LOOKBACK = today`.
 
-Query **Work IQ** (ask_work_iq) for data over the LOOKBACK window:
-- "What emails did I send {LOOKBACK}?"
-- "What Teams messages did I send {LOOKBACK}?"
-- "What emails are flagged in my inbox?"
-- "What Teams messages have I saved?"
-- "What meetings did I have {LOOKBACK}?"
-- "What documents did I edit {LOOKBACK}?"
+**Read active connectors:** Read `~/Documents/dayarc/config.json` → `connectors` array. If `connectors` is absent, fall back to built-in defaults: `work-iq` provides M365 signals, `github` provides GitHub signals.
 
-Query **GitHub MCP** (authenticated account) for data over the LOOKBACK window:
-- Commits authored {LOOKBACK}
-- PRs opened or reviewed {LOOKBACK}
-- Issues commented on or closed {LOOKBACK}
-- Reviews submitted {LOOKBACK}
-- **Notifications:** search for `reason:mention`, `reason:review_requested`, `reason:assign` since the start of the LOOKBACK window — these are high-priority signals the user may have missed
+For each signal category below, query every connector in `config.json` that lists it under `provides`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
+
+#### sent_activity — what the user actively did
+- **work-iq**: "What emails did I send {LOOKBACK}?" / "What Teams messages did I send {LOOKBACK}?" / "What documents did I edit {LOOKBACK}?"
+- **github**: Commits authored {LOOKBACK}; PRs opened or reviewed {LOOKBACK}; Issues commented on or closed {LOOKBACK}; Reviews submitted {LOOKBACK}
+- **other connectors**: query for outgoing/authored activity over the LOOKBACK window
+
+#### flagged_items — user-marked high-priority items
+- **work-iq**: "What emails are flagged in my inbox?" / "What Teams messages have I saved?"
+- **other connectors**: query for starred, flagged, or priority-marked items
+
+#### calendar — scheduled events
+- **work-iq**: "What meetings did I have {LOOKBACK}?"
+- **other connectors**: query for calendar events or scheduled meetings over the LOOKBACK window
+
+#### recent_docs — recently edited files
+- **work-iq**: "What documents did I edit {LOOKBACK}?"
+- **other connectors**: query for recently modified files or documents
+
+#### notifications (PM supplemental — high-priority signals the user may have missed)
+- **github**: search notifications for `reason:mention`, `reason:review_requested`, `reason:assign` since the start of the LOOKBACK window
+- **other connectors**: query for @mentions or new assignments since the start of the LOOKBACK window
 
 **Note:** For non-active GitHub accounts (e.g. EMU/corp), notification emails are captured by Work IQ via Outlook. Cross-reference both sources.
+
+**Graceful degradation:** If a connector is listed in `config.json` but its MCP server is unavailable, note the gap (e.g., "Jira connector unavailable") and continue with signals from other connectors.
 
 ## Step 2: READ
 

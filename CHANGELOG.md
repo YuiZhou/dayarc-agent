@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased] — 2026-04-05
+
+### Added
+- `connectors/CONNECTOR-INTERFACE.md` — Signal source interface spec: defines signal categories, query contract, signal shape, and how to declare/register a connector
+- `connectors/jira/README.md` — Community Jira connector example (provides `flagged_items`, `notifications`, `assigned_items`)
+- `config.example.json` — Added `connectors` array mapping MCP server names to signal categories
+
+### Changed
+- `prompts/pm.md` — COLLECT step refactored to be connector-agnostic: reads active connectors from `config.json → connectors`, queries each connector for the signal categories it declares; falls back to Work IQ + GitHub defaults if `connectors` is absent
+- `prompts/am.md` — Same connector-agnostic refactor for AM COLLECT step
+- `design.md` — Architecture section updated with pluggable connector model (§1a)
+
 ## [Unreleased] — 2026-03-17
 
 ### Added

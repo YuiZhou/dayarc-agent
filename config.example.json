@@ -15,5 +15,15 @@
   },
   "scheduler": [
     { "machine": "DESKTOP-ABC", "am_time": "08:00", "pm_time": "20:00" }
+  ],
+  "connectors": [
+    {
+      "name": "work-iq",
+      "provides": ["sent_activity", "flagged_items", "saved_items", "calendar", "recent_docs"]
+    },
+    {
+      "name": "github",
+      "provides": ["sent_activity", "notifications", "assigned_items"]
+    }
   ]
 }

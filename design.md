@@ -13,8 +13,9 @@ Agent Package (installed)                      User Data ~/Documents/dayarc/ (po
 │  prompts/      4 plan files      │           │  config.json identity+prefs  │
 │  templates/    4 HTML templates  │           └──────────────────────────────┘
 │  memory-schemas.md               │
-│  mcp.json      Work IQ + GitHub  │           Scheduler (optional, machine-specific)
-└──────────────────────────────────┘           scheduler.ps1 + OS task registration
+│  mcp.json      signal connectors │           Scheduler (optional, machine-specific)
+│  connectors/   interface + exs.  │           scheduler.ps1 + OS task registration
+└──────────────────────────────────┘
 ```
 
 | Component | Provider | Auth |
@@ -26,6 +27,19 @@ Agent Package (installed)                      User Data ~/Documents/dayarc/ (po
 | Email | Outlook COM via shell | Signed-in Outlook |
 
 **Portability:** User data lives in `~/Documents/dayarc/` — auto-synced across corp machines via OneDrive/SharePoint. Install agent on new machine → run `irm .../setup.ps1 | iex` → `gh auth login` → works. Agent code + user data = Markdown + JSON (cross-platform). Only scheduler + Outlook COM are platform-specific.
+
+### 1a. Pluggable Signal Source Connectors
+
+The COLLECT step (Step 1 in `pm.md` and `am.md`) is connector-agnostic. Signal sources are declared in two places:
+
+- **`mcp.json`** — the MCP server registry; add any MCP server here to make it available
+- **`config.json → connectors`** — maps each server name to the signal categories it provides (`sent_activity`, `flagged_items`, `saved_items`, `calendar`, `notifications`, `assigned_items`, `recent_docs`)
+
+**Shipped connectors:** `work-iq` (M365) and `github`. Neither is required — teams that don't use M365 can remove `work-iq`; teams without GitHub can remove `github`.
+
+**Community connectors:** Any tool (ADO, Jira, Linear, Slack, etc.) can be plugged in by publishing an MCP server and registering it in `mcp.json` + `config.json`. Core skills (`memory`, `classify_activity`, `infer_priorities`, etc.) are unchanged. See `connectors/CONNECTOR-INTERFACE.md` for the interface spec and `connectors/jira/README.md` for an example.
+
+The synthesis skills are deliberately unaware of signal source — they receive a merged signal set regardless of which connectors produced it.
 
 ## 1b. Install & Upgrade
 

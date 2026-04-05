@@ -33,28 +33,36 @@ If no replies found, continue to Step 1.
 
 ## Step 1: COLLECT
 
-Query **Work IQ** (ask_work_iq) for overnight/new signals:
-- "What flagged emails do I have?"
-- "What saved Teams messages do I have?"
-- "What new emails arrived since yesterday evening?"
-- "What new Teams @mentions do I have?"
-- "What meetings do I have today?"
+**Read active connectors:** Read `~/Documents/dayarc/config.json` → `connectors` array. If `connectors` is absent, fall back to built-in defaults: `work-iq` provides M365 signals, `github` provides GitHub signals.
 
-**Monday extension:** If today is Monday, extend lookback to cover Saturday and Sunday:
-- "What emails arrived since Friday evening?"
-- "What Teams messages arrived since Friday evening?"
+For each signal category below, query every connector in `config.json` that lists it under `provides`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
 
-Query **GitHub MCP** (authenticated account):
-- Notifications since last check — specifically look for:
-  - `reason:mention` — someone @mentioned the user
-  - `reason:review_requested` — someone requested a PR review
-  - `reason:assign` — an issue or PR was assigned to the user
-- PRs awaiting my review (search: `is:pr review-requested:{username}` for **each** github_usernames entry)
-- Issues assigned to me (search: `is:issue assignee:{username}` for **each** github_usernames entry)
+#### flagged_items — user-marked high-priority items
+- **work-iq**: "What flagged emails do I have?" / "What saved Teams messages do I have?"
+- **other connectors**: query for starred, flagged, or priority-marked items
+
+#### notifications — incoming @mentions, review requests, assignments
+- **work-iq**: "What new emails arrived since yesterday evening?" / "What new Teams @mentions do I have?"
+- **github**: Notifications since last check — `reason:mention`, `reason:review_requested`, `reason:assign`
+- **other connectors**: query for @mentions or new assignments since last brief
+
+#### assigned_items — open tasks assigned to the user
+- **github**: PRs awaiting review (`is:pr review-requested:{username}` for **each** `github_usernames` entry); Issues assigned to the user (`is:issue assignee:{username}` for **each** `github_usernames` entry)
+- **other connectors**: query for open assigned tasks or tickets
+
+#### calendar — today's scheduled events
+- **work-iq**: "What meetings do I have today?"
+- **other connectors**: query for today's calendar events or scheduled meetings
+
+**Monday extension:** If today is Monday, extend lookback to cover Saturday and Sunday for all `notifications` queries:
+- **work-iq**: "What emails arrived since Friday evening?" / "What Teams messages arrived since Friday evening?"
+- **other connectors**: extend the since-timestamp to Friday evening
 
 **Note:** GitHub MCP can only fetch notifications for the active `gh` account. For other accounts (e.g. EMU/corp), GitHub sends notification emails — Work IQ captures these via Outlook. Cross-reference both sources to avoid missing items.
 
 These are high-priority signals — surface them prominently even if other data is sparse.
+
+**Graceful degradation:** If a connector is listed in `config.json` but its MCP server is unavailable, note the gap (e.g., "Jira connector unavailable") and continue with signals from other connectors.
 
 ## Step 2: READ
 
