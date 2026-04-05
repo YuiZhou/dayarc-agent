@@ -42,7 +42,7 @@
   </div>
   {{/if}}
 
-  <h2>{{h_themes}}</h2>
+  <h2>🎯 This Week's Themes</h2>
   {{#if themes.length}}
     {{#each themes}}
     <div class="theme-item">
@@ -57,7 +57,7 @@
     <p class="empty-note">No themes identified this week.</p>
   {{/if}}
 
-  <h2>{{h_accomplishments}}</h2>
+  <h2>✅ Accomplishments</h2>
   {{#if accomplishments.length}}
     <ul>
       {{#each accomplishments}}
@@ -68,7 +68,7 @@
     <p class="empty-note">No accomplishments to report.</p>
   {{/if}}
 
-  <h2>{{h_stuck}}</h2>
+  <h2>🔄 Stuck / Recurring Carryovers</h2>
   {{#if stuck_items.length}}
     {{#each stuck_items}}
     <div class="stuck-item">
@@ -79,7 +79,7 @@
     <p class="empty-note">Nothing stuck this week.</p>
   {{/if}}
 
-  <h2>{{h_next_week}}</h2>
+  <h2>🔮 Next Week's Suggested Focus</h2>
   {{#if suggested_focus.length}}
     {{#each suggested_focus}}
     <div class="focus-item">{{this}}</div>

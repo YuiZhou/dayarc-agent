@@ -47,7 +47,7 @@
   </div>
   {{/if}}
 
-  <h2>{{h_todays_plan}}</h2>
+  <h2>📋 Today's Plan</h2>
   {{#if todays_plan.length}}
     {{#each todays_plan}}
     <div class="action-item {{urgencyClass this.urgency}}">
@@ -60,7 +60,7 @@
     <p class="empty-note">No action items for today.</p>
   {{/if}}
 
-  <h2>{{h_learning}}</h2>
+  <h2>📚 Recommended Learning</h2>
   {{#if recommended_learning.length}}
     {{#each recommended_learning}}
     <div class="learning-item">
@@ -79,7 +79,7 @@
     <p class="empty-note">No learning recommendations today.</p>
   {{/if}}
 
-  <h2>{{h_signals}}</h2>
+  <h2>📨 Incoming Signals</h2>
   {{#if incoming_signals.length}}
     {{#each incoming_signals}}
     <div class="signal-item">
@@ -92,7 +92,7 @@
   {{/if}}
 
   {{#if you_may_forget.length}}
-  <h2>{{h_may_forget}}</h2>
+  <h2>⚠️ You May Forget</h2>
     {{#each you_may_forget}}
     <div class="drift-alert">
       <div class="drift-priority">{{this.priority}}</div>

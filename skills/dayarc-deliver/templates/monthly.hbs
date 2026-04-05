@@ -50,7 +50,7 @@
   </div>
   {{/if}}
 
-  <h2>{{h_time_allocation}}</h2>
+  <h2>📊 Where My Time Went</h2>
   {{#if time_allocation.length}}
     {{#each time_allocation}}
     <div class="alloc-item">
@@ -63,7 +63,7 @@
     <p class="empty-note">No allocation data available.</p>
   {{/if}}
 
-  <h2>{{h_accomplishments}}</h2>
+  <h2>✅ Key Accomplishments</h2>
   {{#if accomplishments.length}}
     <ul>
       {{#each accomplishments}}
@@ -75,7 +75,7 @@
   {{/if}}
 
   {{#if persistently_stuck.length}}
-  <h2>{{h_stuck}}</h2>
+  <h2>🚫 Persistently Stuck</h2>
     {{#each persistently_stuck}}
     <div class="stuck-item">
       <span class="stuck-weeks">{{this.weeks_stuck}} weeks</span> — {{this.description}}
@@ -83,7 +83,7 @@
     {{/each}}
   {{/if}}
 
-  <h2>{{h_learning}}</h2>
+  <h2>📚 Learning Progress</h2>
   {{#if learning_progress.length}}
     {{#each learning_progress}}
     <div class="learning-item">
@@ -98,7 +98,7 @@
     <p class="empty-note">No learning topics tracked.</p>
   {{/if}}
 
-  <h2>{{h_next_month}}</h2>
+  <h2>🔮 Next Month's Outlook</h2>
   {{#if outlook_next_month.length}}
     {{#each outlook_next_month}}
     <div class="outlook-item">{{this}}</div>

@@ -5,10 +5,7 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 
 **User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_usernames (array — query all accounts).
 
-**Locale:** Read the `locale` field from config.json (default: `en`). Use this locale for all user-facing text in this brief:
-- Write section headings, theme labels, accomplishments, and outlook items in the locale's language.
-- Format dates using the locale convention (`en`: `Mon 5 Apr 2026`; `zh`: `2026年4月5日`).
-- Pass `locale` and localized section headings to **dayarc-deliver** when rendering the template (see Step 4).
+**Locale:** Read the `locale` field from config.json (default: `en`). Pass it to **dayarc-deliver** in Step 4; the skill handles translation of the rendered brief.
 
 **Idempotency:** Check `~/Documents/dayarc/memory/runs/{today}-monthly.json`. If it exists, STOP — already ran.
 

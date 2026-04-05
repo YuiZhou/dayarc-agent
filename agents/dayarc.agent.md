@@ -25,17 +25,7 @@ Test-Path (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "dayarc\confi
 
 ## Locale
 
-Read the `locale` field from `~/Documents/dayarc/config.json` (default: `"en"` if absent). Apply it consistently across every response:
-
-| Locale | Language | Date format | Urgency labels |
-|--------|----------|-------------|----------------|
-| `en`   | English  | `Mon 5 Apr 2026` | 🔴 urgent · 🟡 soon · 🔵 when-free |
-| `zh`   | 简体中文  | `2026年4月5日` | 🔴 紧急 · 🟡 本周内 · 🔵 空闲时 |
-
-- Write all user-facing text (brief items, section headings, suggestions, alerts) in the locale's language.
-- Apply the locale's date format wherever dates appear (briefs, memory writes, email subjects).
-- Adapt tone and urgency norms to the locale's professional conventions (e.g., Chinese briefs tend toward concise factual statements; English briefs may include more contextual explanation).
-- Pass `locale` when invoking the **dayarc-deliver** skill so templates render with the correct `lang` attribute and localised headings.
+Read the `locale` field from `~/Documents/dayarc/config.json` (default: `"en"` if absent). Pass it to the **dayarc-deliver** skill when invoking any brief. The deliver skill handles translation.
 
 ## What You Know
 

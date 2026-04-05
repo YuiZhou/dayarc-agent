@@ -91,7 +91,7 @@
   <p style="color:#a0aec0;font-size:13px;margin-bottom:12px;">⚠️ {{#each data_gaps}}{{this}}{{#unless @last}}; {{/unless}}{{/each}}</p>
   {{/if}}
 
-  <h2>{{h_what_i_did}}</h2>
+  <h2>📋 What I Did Today</h2>
   {{#if what_i_did.length}}
     {{#each what_i_did}}
     <div class="theme-label">{{this.theme}}{{#if this.total_effort}} ({{this.total_effort}}%){{/if}}</div>
@@ -111,7 +111,7 @@
     <p class="empty-note">No activities captured today.</p>
   {{/if}}
 
-  <h2>{{h_priorities}}</h2>
+  <h2>🎯 My Priorities Today</h2>
   {{#if priorities.length}}
     {{#each priorities}}
     {{#if this.description}}
@@ -129,7 +129,7 @@
     <p class="empty-note">No priorities identified.</p>
   {{/if}}
 
-  <h2>{{h_unfinished}}</h2>
+  <h2>⏳ Left Unfinished</h2>
   {{#if unfinished.length}}
     {{#each unfinished}}
     {{#if this.item}}
