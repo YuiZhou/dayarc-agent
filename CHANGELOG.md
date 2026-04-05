@@ -27,6 +27,11 @@
 - Installation docs rewritten for plugin-first flow
 - Agent now has 12 skills (was 9)
 
+### Fixed
+- **#68 — Scheduler breaks on plugin migration:** `scheduler.ps1` now auto-detects the correct agent name (`dayarc:dayarc` for plugin installs, `dayarc` for user-level). Previously hardcoded `--agent=dayarc` which failed after migrating to plugin install.
+- `setup.ps1` dry-run and completion message now use the correct agent name for the detected install method.
+- `dayarc-upgrade` skill documents the user-level → plugin migration path including agent name change and old file cleanup.
+
 ## [1.0.0] — 2026-03-17
 
 ### Changed

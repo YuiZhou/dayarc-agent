@@ -31,6 +31,9 @@ HTML email templates are Handlebars (`.hbs`) files in `skills/dayarc-deliver/tem
 Test by running Copilot CLI with Dayarc:
 
 ```bash
+# Plugin install: use dayarc:dayarc
+copilot --agent=dayarc:dayarc
+# Script install: use dayarc
 copilot --agent=dayarc
 # Then ask: "Show me a dry run of the PM brief"
 ```

@@ -48,6 +48,14 @@ if (-not $agentDir) {
     exit 1
 }
 
+# ── Resolve agent name ───────────────────────────────────────────────────────
+# Plugin-level agents use "dayarc:dayarc"; user-level agents use "dayarc"
+if ($pluginHit) {
+    $agentName = "dayarc:dayarc"
+} else {
+    $agentName = "dayarc"
+}
+
 $profileDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "dayarc"
 
 function Is-LastWorkday {
@@ -62,31 +70,31 @@ function Is-LastWorkday {
 
 $today = Get-Date
 
-Write-Host "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd'))"
+Write-Host "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd')) | Agent: $agentName"
 
 Push-Location $profileDir
 
 if ($trigger -eq "am") {
     Write-Host "[Dayarc] Running AM brief..."
-    copilot --agent=dayarc --prompt "$agentDir\prompts\am.md"
+    copilot --agent=$agentName --prompt "$agentDir\prompts\am.md"
 }
 
 if ($trigger -eq "pm") {
     Write-Host "[Dayarc] Running PM brief..."
-    copilot --agent=dayarc --prompt "$agentDir\prompts\pm.md"
+    copilot --agent=$agentName --prompt "$agentDir\prompts\pm.md"
 
     if ($today.DayOfWeek -eq [DayOfWeek]::Friday) {
         Write-Host "[Dayarc] Friday -- running Weekly brief..."
-        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md"
+        copilot --agent=$agentName --prompt "$agentDir\prompts\weekly.md"
 
         if (Is-LastWorkday $today) {
             Write-Host "[Dayarc] Last workday of month -- running Monthly brief..."
-            copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md"
+            copilot --agent=$agentName --prompt "$agentDir\prompts\monthly.md"
         }
     } elseif (Is-LastWorkday $today) {
         Write-Host "[Dayarc] Last workday of month (non-Friday) -- running Weekly + Monthly..."
-        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md"
-        copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md"
+        copilot --agent=$agentName --prompt "$agentDir\prompts\weekly.md"
+        copilot --agent=$agentName --prompt "$agentDir\prompts\monthly.md"
     }
 }
 
