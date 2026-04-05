@@ -5,6 +5,8 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 
 **User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_usernames (array — query all accounts).
 
+**Locale:** Read the `locale` field from config.json (default: `en`). Pass it to **dayarc-deliver** in Step 4; the skill handles translation of the rendered brief.
+
 **Idempotency:** Check `~/Documents/dayarc/memory/runs/{today}-am.json`. If it exists, STOP — already ran today.
 
 ---

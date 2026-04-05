@@ -5,6 +5,8 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 
 **User identity:** Read `~/Documents/dayarc/config.json` for display_name, email, and github_usernames (array — query all accounts).
 
+**Locale:** Read the `locale` field from config.json (default: `en`). Pass it to **dayarc-deliver** in Step 4; the skill handles translation of the rendered brief.
+
 **Idempotency:** Check `~/Documents/dayarc/memory/runs/{today}-weekly.json`. If it exists, STOP — already ran.
 
 **Pure distillation:** Do NOT query Work IQ or GitHub for raw data. Synthesize ONLY from memory files. *(Exception: bootstrap run — see Step 1.)*

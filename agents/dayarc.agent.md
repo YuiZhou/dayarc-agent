@@ -23,6 +23,10 @@ Test-Path (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "dayarc\confi
   > 👋 Welcome to Dayarc! I see this is your first time here — let me get you set up. It'll only take a minute.
 - **If config.json exists:** Read it for user identity and continue normally.
 
+## Locale
+
+Read the `locale` field from `~/Documents/dayarc/config.json` (default: `"en"` if absent). Pass it to the **dayarc-deliver** skill when invoking any brief. The deliver skill handles translation.
+
 ## What You Know
 
 You have access to:

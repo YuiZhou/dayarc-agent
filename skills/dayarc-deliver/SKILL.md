@@ -14,8 +14,9 @@ Located in this skill's `templates/` directory:
 
 ### Scheduled (send email)
 1. Render the appropriate .hbs template with brief data.
-2. Save rendered HTML to a temp file.
-3. Send via Outlook COM:
+2. **If `locale` is not `en`:** Translate the rendered HTML body text into the target language before sending. Preserve all HTML tags, inline styles, emoji, and source breadcrumb links unchanged — translate only the visible text content.
+3. Save rendered (and translated, if applicable) HTML to a temp file.
+4. Send via Outlook COM:
 ```powershell
 $ol = New-Object -ComObject Outlook.Application
 $mail = $ol.CreateItem(0)
@@ -25,14 +26,14 @@ $mail.HTMLBody = Get-Content "{html-path}" -Raw
 $mail.Send()
 ```
 
-Email subjects:
+Email subjects (translate the subject too if `locale` is not `en`):
 - PM: `🌙 Evening Wrap-up — {date}`
 - AM: `☀️ Morning Brief — {date}`
 - Weekly: `📊 Weekly — Week of {date}`
 - Monthly: `📅 Monthly — {month} {year}`
 
 ### Conversational (terminal)
-Render the brief as formatted text in the terminal. Do NOT send email unless the user explicitly says "send it".
+Render the brief as formatted text in the terminal. If `locale` is not `en`, translate the output before displaying. Do NOT send email unless the user explicitly says "send it".
 
 ## Instructions
 1. Verify Outlook is running before attempting send (check process).
