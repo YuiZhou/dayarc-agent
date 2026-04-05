@@ -14,8 +14,8 @@
 - Triage bot (`triage.yml`) — Auto-classifies new issues via Copilot CLI in GitHub Actions
 - `.github/prompts/triage-prompt.md` — Triage classification prompt
 - Coding agent (`coding-agent.yml`) — Auto-generates fix PRs when maintainer labels issue `approved`
-- `.github/prompts/coding-prompt.md` — Coding agent prompt with scope guard rules
-- CI scope-guard job — Validates `auto-fix` PRs only modify allowed files
+- Coding agent `/continue` — Post `/continue` on a PR to have the agent address review feedback and push new commits
+- `.github/prompts/coding-prompt.md` — Coding agent prompt (supports new + continue modes)
 - Re-run detection: existing install → `git pull`, existing config → skip prompts
 
 ### Changed
@@ -34,6 +34,10 @@
   3. No logging: output now written to `~/Documents/dayarc/logs/{date}-{trigger}.log` via `Tee-Object`
 - `setup.ps1` dry-run and completion message now use the correct agent name for the detected install method.
 - `dayarc-upgrade` skill documents the user-level → plugin migration path including agent name change and old file cleanup.
+
+### Removed
+- **Scope guard** — file-level restrictions on coding agent removed. Human merge review is the safety gate. (#70)
+- CI `scope-guard` job removed from `ci.yml`
 
 ## [1.0.0] — 2026-03-17
 
