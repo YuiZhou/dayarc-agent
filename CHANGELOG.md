@@ -14,7 +14,7 @@
 - Triage bot (`triage.yml`) — Auto-classifies new issues via Copilot CLI in GitHub Actions
 - `.github/prompts/triage-prompt.md` — Triage classification prompt
 - Coding agent (`coding-agent.yml`) — Auto-generates fix PRs when maintainer labels issue `approved`
-- Coding agent `/continue` — Post `/continue` on a PR to have the agent address review feedback and push new commits
+- Coding agent `/continue` with **session resume** — Post `/continue` on a PR to resume the original Copilot session (via `actions/cache` + `--resume`); agent has full memory of prior reasoning and reads PR feedback directly via GitHub MCP tools
 - `.github/prompts/coding-prompt.md` — Coding agent prompt (supports new + continue modes)
 - Re-run detection: existing install → `git pull`, existing config → skip prompts
 
