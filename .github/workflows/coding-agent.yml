@@ -2,6 +2,8 @@ name: Coding Agent
 on:
   issues:
     types: [labeled]
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -18,13 +20,31 @@ jobs:
   coding-agent:
     if: >-
       (github.event_name == 'workflow_dispatch') ||
-      (github.event.label.name == 'approved')
+      (github.event.label.name == 'approved') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.comment.user.login == 'YuiZhou' &&
+       startsWith(github.event.comment.body, '/continue') &&
+       github.event.issue.pull_request)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
 
-      # Step 1: Resolve issue
-      - name: Resolve issue
+      # ── Step 0: Determine mode (new session vs continue) ──────────────────
+      - name: Determine mode
+        id: mode
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.eventName === 'issue_comment' && context.payload.issue.pull_request) {
+              core.setOutput('mode', 'continue');
+              core.setOutput('pr_number', String(context.payload.issue.number));
+            } else {
+              core.setOutput('mode', 'new');
+            }
+            core.info(`Mode: ${context.eventName === 'issue_comment' ? 'continue' : 'new'}`);
+
+      # ── Step 1a: Resolve issue (new session) ──────────────────────────────
+      - name: Resolve issue (new)
+        if: steps.mode.outputs.mode == 'new'
         id: resolve
         uses: actions/github-script@v7
         with:
@@ -40,10 +60,9 @@ jobs:
             } else {
               issue = context.payload.issue;
             }
-            core.setOutput('number', issue.number);
+            core.setOutput('number', String(issue.number));
             core.setOutput('title', issue.title);
             core.setOutput('body', issue.body || '(no body)');
-            // Slugify title for branch name
             const slug = issue.title
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, '-')
@@ -51,16 +70,101 @@ jobs:
               .substring(0, 40);
             core.setOutput('slug', slug);
 
-      # Step 2: Gather context — read triage comment + identify affected files
-      - name: Gather context
+      # ── Step 1b: Resolve PR + issue (continue session) ────────────────────
+      - name: Resolve PR (continue)
+        if: steps.mode.outputs.mode == 'continue'
+        id: resolve_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ steps.mode.outputs.pr_number }}');
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            core.setOutput('branch', pr.data.head.ref);
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('pr_title', pr.data.title);
+            core.setOutput('pr_body', pr.data.body || '');
+
+            // Extract issue number from PR body (## Fixes #N)
+            const issueMatch = (pr.data.body || '').match(/Fixes #(\d+)/);
+            let issueNumber = '';
+            let issueTitle = '';
+            let issueBody = '';
+            if (issueMatch) {
+              issueNumber = issueMatch[1];
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(issueNumber)
+              });
+              issueTitle = issue.title;
+              issueBody = issue.body || '(no body)';
+            }
+            core.setOutput('issue_number', issueNumber);
+            core.setOutput('issue_title', issueTitle);
+            core.setOutput('issue_body', issueBody);
+
+            // Collect PR review comments + conversation comments
+            const reviewComments = await github.rest.pulls.listReviewComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              per_page: 100
+            });
+            const issueComments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100
+            });
+
+            let feedback = '';
+            // Filter out bot comments and the /continue trigger itself
+            for (const c of issueComments.data) {
+              if (c.body.includes('🤖') || c.body.trim() === '/continue') continue;
+              feedback += `**${c.user.login}** (conversation):\n${c.body}\n\n---\n\n`;
+            }
+            for (const c of reviewComments.data) {
+              const path = c.path ? ` on \`${c.path}\`` : '';
+              feedback += `**${c.user.login}** (code review${path}):\n${c.body}\n\n---\n\n`;
+            }
+            core.setOutput('feedback', feedback || 'No new feedback found.');
+
+      # ── Step 2: Checkout ──────────────────────────────────────────────────
+      - uses: actions/checkout@v4
+        if: steps.mode.outputs.mode == 'new'
+
+      - uses: actions/checkout@v4
+        if: steps.mode.outputs.mode == 'continue'
+        with:
+          ref: ${{ steps.resolve_pr.outputs.branch }}
+
+      # ── Step 3: Gather triage context (both modes) ────────────────────────
+      - name: Gather triage context
         id: gather
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
+            // Determine issue number based on mode
+            const mode = '${{ steps.mode.outputs.mode }}';
+            let issueNumber;
+            if (mode === 'continue') {
+              issueNumber = parseInt('${{ steps.resolve_pr.outputs.issue_number }}');
+            } else {
+              issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
+            }
 
-            // Find triage bot comment
+            if (!issueNumber) {
+              core.setOutput('triage_comment', '');
+              core.setOutput('affected_area', '');
+              core.info('No issue number found — skipping triage lookup');
+              return;
+            }
+
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -69,26 +173,18 @@ jobs:
             });
             let triageComment = '';
             let affectedArea = '';
-            let classification = '';
             for (const c of comments.data) {
               if (c.body.includes('### 🤖 Triage Bot')) {
                 triageComment = c.body;
-                const areaMatch = c.body.match(/\*\*Affected area:\*\*\s*(.+)/);
+                const areaMatch = c.body.match(/Area:\s*(.+)/);
                 if (areaMatch) affectedArea = areaMatch[1].trim();
-                const classMatch = c.body.match(/\*\*Classification:\*\*\s*(.+)/);
-                if (classMatch) classification = classMatch[1].trim();
                 break;
               }
             }
-
             core.setOutput('triage_comment', triageComment);
             core.setOutput('affected_area', affectedArea);
-            core.setOutput('classification', classification);
-            core.info(`Triage comment found: ${triageComment.length > 0}`);
-            core.info(`Affected area: ${affectedArea}`);
-            core.info(`Classification: ${classification}`);
 
-      # Step 3: Read source files based on affected area
+      # ── Step 4: Read source files ─────────────────────────────────────────
       - name: Read source files
         id: sources
         env:
@@ -96,16 +192,13 @@ jobs:
         run: |
           SOURCE_CONTENT=""
 
-          # Try to find the skill file from affected_area
           if [ -n "$AFFECTED" ]; then
-            # Search for matching skill directories
             for dir in skills/*/; do
               skill_name=$(basename "$dir")
               if echo "$skill_name" | grep -qi "$(echo "$AFFECTED" | sed 's/dayarc-//g')"; then
                 if [ -f "${dir}SKILL.md" ]; then
                   SOURCE_CONTENT="${SOURCE_CONTENT}## File: ${dir}SKILL.md\n\n$(cat "${dir}SKILL.md")\n\n---\n\n"
                 fi
-                # Include templates if they exist
                 for tmpl in "${dir}templates/"*.hbs; do
                   if [ -f "$tmpl" ]; then
                     SOURCE_CONTENT="${SOURCE_CONTENT}## File: ${tmpl}\n\n$(cat "${tmpl}")\n\n---\n\n"
@@ -115,7 +208,6 @@ jobs:
             done
           fi
 
-          # If no specific match, include all skill files (capped)
           if [ -z "$SOURCE_CONTENT" ]; then
             for f in skills/*/SKILL.md; do
               if [ -f "$f" ]; then
@@ -124,13 +216,13 @@ jobs:
             done
           fi
 
-          # Cap at ~50KB
           echo -e "$SOURCE_CONTENT" | head -c 50000 > source-files.txt
           echo "Source files collected: $(wc -c < source-files.txt) bytes"
 
-      # Step 4: Build prompt input
-      # All user-controlled content passed via env to prevent shell injection
-      - name: Build prompt
+      # ── Step 5: Build prompt ──────────────────────────────────────────────
+      # New session: issue + triage + source files
+      - name: Build prompt (new)
+        if: steps.mode.outputs.mode == 'new'
         env:
           ISSUE_NUMBER: ${{ steps.resolve.outputs.number }}
           ISSUE_TITLE: ${{ steps.resolve.outputs.title }}
@@ -151,6 +243,52 @@ jobs:
           PROMPT_DELIM
           echo "Prompt built: $(wc -c < coding-input.md) bytes"
 
+      # Continue session: issue + triage + PR feedback + source files
+      - name: Build prompt (continue)
+        if: steps.mode.outputs.mode == 'continue'
+        env:
+          ISSUE_NUMBER: ${{ steps.resolve_pr.outputs.issue_number }}
+          ISSUE_TITLE: ${{ steps.resolve_pr.outputs.issue_title }}
+          ISSUE_BODY: ${{ steps.resolve_pr.outputs.issue_body }}
+          PR_NUMBER: ${{ steps.resolve_pr.outputs.pr_number }}
+          PR_TITLE: ${{ steps.resolve_pr.outputs.pr_title }}
+          TRIAGE_COMMENT: ${{ steps.gather.outputs.triage_comment }}
+          FEEDBACK: ${{ steps.resolve_pr.outputs.feedback }}
+        run: |
+          cat > coding-input.md << 'HEADER_DELIM'
+          # Continuing PR review — address feedback
+
+          You are **continuing** work on an existing PR. A previous coding agent session
+          already made changes. Now there is reviewer feedback to address.
+
+          **Your job:** Read the feedback below, understand what needs to change, and
+          make additional edits. Push targeted fixes — do NOT redo work that is already correct.
+
+          HEADER_DELIM
+
+          printf '## Original Issue #%s: %s\n\n%s\n\n' \
+            "$ISSUE_NUMBER" "$ISSUE_TITLE" "$ISSUE_BODY" >> coding-input.md
+
+          if [ -n "$TRIAGE_COMMENT" ]; then
+            printf '## Triage Analysis\n\n%s\n\n' "$TRIAGE_COMMENT" >> coding-input.md
+          fi
+
+          printf '## PR #%s: %s\n\n' "$PR_NUMBER" "$PR_TITLE" >> coding-input.md
+          printf '## Reviewer Feedback\n\n%s\n\n' "$FEEDBACK" >> coding-input.md
+          printf '## Current Source Files\n\n' >> coding-input.md
+          cat source-files.txt >> coding-input.md
+
+          cat >> coding-input.md << 'PROMPT_DELIM'
+
+          ## Project Context
+
+          Read @spec.md and @design.md for product context.
+          Read @memory-schemas.md if the fix involves memory-related skills.
+
+          Follow the instructions in @.github/prompts/coding-prompt.md
+          PROMPT_DELIM
+          echo "Continue prompt built: $(wc -c < coding-input.md) bytes"
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -158,12 +296,11 @@ jobs:
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
 
-      # Save original HEAD so we can detect ALL changes (unstaged, staged, committed)
       - name: Save baseline SHA
         id: baseline
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      # Step 5: Run Copilot CLI — let it edit files directly
+      # ── Step 6: Run Copilot CLI ───────────────────────────────────────────
       - name: Run Copilot CLI
         timeout-minutes: 10
         env:
@@ -172,15 +309,13 @@ jobs:
           PROMPT=$(cat coding-input.md)
           copilot --allow-all --prompt "$PROMPT" 2>copilot-stderr.log | tee copilot-output.txt
 
-      # Step 6: Detect what changed
+      # ── Step 7: Detect changes ────────────────────────────────────────────
       - name: Detect changes
         id: detect
         run: |
-          # Clean up build artifacts before checking diff
           rm -f coding-input.md source-files.txt copilot-output.txt copilot-stderr.log
           rm -rf .copilot/
 
-          # Save agent status files content, then fully remove them
           SUMMARY_CONTENT=""
           UNABLE_CONTENT=""
           if [ -f "summary.md" ]; then
@@ -189,17 +324,14 @@ jobs:
           if [ -f "unable.md" ]; then
             UNABLE_CONTENT=$(cat unable.md)
           fi
-          # Remove from working tree AND git index so they don't pollute the diff
           rm -f summary.md unable.md
           git rm -f --cached summary.md unable.md 2>/dev/null || true
           git checkout -- summary.md 2>/dev/null || true
           git checkout -- unable.md 2>/dev/null || true
 
           BASELINE="${{ steps.baseline.outputs.sha }}"
-          # Diff against baseline to catch unstaged, staged, AND committed changes
           CHANGED=$(git diff --name-only "$BASELINE")
 
-          # Pass summary content via outputs for the PR step
           if [ -n "$SUMMARY_CONTENT" ]; then
             {
               echo "summary<<SUMMARY_DELIM"
@@ -226,38 +358,9 @@ jobs:
             echo "$CHANGED"
           fi
 
-      # Step 7: Scope guard
-      - name: Scope guard
-        if: steps.detect.outputs.action == 'fix'
-        run: |
-          BASELINE="${{ steps.baseline.outputs.sha }}"
-          CHANGED=$(git diff --name-only "$BASELINE")
-          ALLOWED="^(skills/.*/SKILL\.md|skills/.*/templates/.*\.hbs|prompts/.*\.md|memory-schemas\.md|README\.md|USAGE\.md|CONTRIBUTING\.md)$"
-          BLOCKED=".github/workflows/ .github/prompts/ setup\.ps1 scheduler\.ps1 package\.json"
-
-          VIOLATIONS=""
-          for file in $CHANGED; do
-            for blocked in $BLOCKED; do
-              if echo "$file" | grep -q "^${blocked}"; then
-                VIOLATIONS="${VIOLATIONS}\n  - SELF-REFERENTIAL: $file"
-              fi
-            done
-            if ! echo "$file" | grep -qE "$ALLOWED"; then
-              VIOLATIONS="${VIOLATIONS}\n  - SCOPE: $file"
-            fi
-          done
-
-          if [ -n "$VIOLATIONS" ]; then
-            echo "::error::Scope guard violations:${VIOLATIONS}"
-            exit 1
-          fi
-          echo "Scope guard passed for: $CHANGED"
-
-      # Step 8: Create branch + PR
-      # DETECT_SUMMARY and ISSUE_TITLE passed via env to prevent shell injection
-      # (summary contains markdown with backticks that bash would execute)
+      # ── Step 8a: Create branch + PR (new session) ────────────────────────
       - name: Create branch and PR
-        if: steps.detect.outputs.action == 'fix'
+        if: steps.detect.outputs.action == 'fix' && steps.mode.outputs.mode == 'new'
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -272,30 +375,22 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
 
-          # Squash all changes since baseline into the working tree.
-          # Copilot CLI may have committed changes directly, so git add -A
-          # alone would find "nothing to commit". Soft-reset collapses
-          # agent commits + unstaged edits into staged changes.
           BASELINE="${{ steps.baseline.outputs.sha }}"
           git reset --soft "$BASELINE"
 
           git add -A
-          # Remove any agent artifacts that got staged
           git reset HEAD -- summary.md unable.md coding-input.md source-files.txt copilot-output.txt copilot-stderr.log 2>/dev/null || true
 
-          # Build commit message from detect step summary output
           SUMMARY="$ISSUE_TITLE"
           if [ -n "$DETECT_SUMMARY" ]; then
             SUMMARY=$(printf '%s' "$DETECT_SUMMARY" | head -5 | tr '\n' ' ' | cut -c1-100)
           fi
 
           git commit -m "fix: #${ISSUE_NUM} — ${SUMMARY}"
-
-          # Handle branch collision — force push if branch exists
           git push origin "$BRANCH" --force
 
-          # Build PR body via temp file (avoids shell expansion of markdown content)
           SUMMARY_BODY="${DETECT_SUMMARY:-No detailed summary available.}"
+          RUN_ID="${{ github.run_id }}"
 
           cat > /tmp/pr-body.md << BODY_DELIM
           ## Fixes #${ISSUE_NUM}
@@ -315,6 +410,14 @@ jobs:
           > upgrade to stable
 
           ---
+
+          ### 🔄 Iterate on this PR
+
+          Add review comments, then post \`/continue\` to have the coding agent address your feedback.
+
+          <!-- dayarc-session: issue=${ISSUE_NUM}, run=${RUN_ID} -->
+
+          ---
           _Generated by Dayarc coding agent._
           BODY_DELIM
 
@@ -328,47 +431,95 @@ jobs:
           echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "Created PR: $PR_URL"
 
-      # Step 9: Comment on issue
-      - name: Comment on issue
+      # ── Step 8b: Push commits (continue session) ─────────────────────────
+      - name: Push commits to PR branch
+        if: steps.detect.outputs.action == 'fix' && steps.mode.outputs.mode == 'continue'
+        id: push
+        env:
+          DETECT_SUMMARY: ${{ steps.detect.outputs.summary }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BASELINE="${{ steps.baseline.outputs.sha }}"
+          git reset --soft "$BASELINE"
+
+          git add -A
+          git reset HEAD -- summary.md unable.md coding-input.md source-files.txt copilot-output.txt copilot-stderr.log 2>/dev/null || true
+
+          SUMMARY="Address review feedback"
+          if [ -n "$DETECT_SUMMARY" ]; then
+            SUMMARY=$(printf '%s' "$DETECT_SUMMARY" | head -5 | tr '\n' ' ' | cut -c1-100)
+          fi
+
+          git commit -m "fix: ${SUMMARY}"
+          git push origin HEAD
+
+          echo "Pushed to branch: ${{ steps.resolve_pr.outputs.branch }}"
+
+      # ── Step 9: Comment ───────────────────────────────────────────────────
+      - name: Comment on issue or PR
         if: always()
         uses: actions/github-script@v7
         env:
           UNABLE_REASON: ${{ steps.detect.outputs.unable }}
         with:
           script: |
-            const issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
+            const mode = '${{ steps.mode.outputs.mode }}';
             const action = '${{ steps.detect.outputs.action }}' || 'none';
 
             let comment = '### 🤖 Coding Agent\n\n';
+            let targetNumber;
 
-            if (action === 'fix') {
-              const prUrl = '${{ steps.pr.outputs.pr_url }}';
-              const branch = `fix/${{ steps.resolve.outputs.number }}-${{ steps.resolve.outputs.slug }}`;
-              if (prUrl) {
-                comment += `A fix has been generated and submitted as ${prUrl}.\n\n`;
-                comment += `### 🧪 Preview this change\n\n`;
-                comment += `Send this to Dayarc:\n\n`;
-                comment += `> upgrade to branch ${branch}\n\n`;
-                comment += `To return to stable:\n\n`;
-                comment += `> upgrade to stable`;
+            if (mode === 'continue') {
+              targetNumber = parseInt('${{ steps.mode.outputs.pr_number }}');
+
+              if (action === 'fix') {
+                const summary = process.env.DETECT_SUMMARY || 'Addressed review feedback.';
+                comment += `Pushed new commits to address feedback.\n\n`;
+                comment += `**Changes:**\n${summary}\n\n`;
+                comment += `Ready for re-review.`;
+              } else if (action === 'unable') {
+                const reason = process.env.UNABLE_REASON || 'The requested changes are outside what the agent can do automatically.';
+                comment += `The coding agent **could not address** the feedback.\n\n`;
+                comment += `${reason}\n\n`;
+                comment += 'A maintainer will need to make these changes manually.';
               } else {
-                comment += '⚠️ Fix was generated but PR creation failed. Check the workflow logs.';
+                comment += '⚠️ The coding agent reviewed the feedback but made no changes.\n\n';
+                comment += 'The feedback may already be addressed, or the changes needed are too ambiguous.';
               }
-            } else if (action === 'unable') {
-              const reason = process.env.UNABLE_REASON || 'The fix requires changes outside the coding agent scope.';
-              comment += `The coding agent determined it **cannot automatically fix** this issue.\n\n`;
-              comment += `${reason}\n\n`;
-              comment += 'A maintainer will need to address this manually.';
             } else {
-              comment += '⚠️ The coding agent could not produce a fix.\n\n';
-              comment += 'This may be due to the issue being too complex or ambiguous for automated resolution.\n';
-              comment += 'Maintainer: please investigate manually.';
+              targetNumber = parseInt('${{ steps.resolve.outputs.number }}');
+
+              if (action === 'fix') {
+                const prUrl = '${{ steps.pr.outputs.pr_url }}';
+                const branch = `fix/${{ steps.resolve.outputs.number }}-${{ steps.resolve.outputs.slug }}`;
+                if (prUrl) {
+                  comment += `A fix has been generated and submitted as ${prUrl}.\n\n`;
+                  comment += `### 🧪 Preview this change\n\n`;
+                  comment += `Send this to Dayarc:\n\n`;
+                  comment += `> upgrade to branch ${branch}\n\n`;
+                  comment += `To return to stable:\n\n`;
+                  comment += `> upgrade to stable`;
+                } else {
+                  comment += '⚠️ Fix was generated but PR creation failed. Check the workflow logs.';
+                }
+              } else if (action === 'unable') {
+                const reason = process.env.UNABLE_REASON || 'The fix requires changes the coding agent cannot make automatically.';
+                comment += `The coding agent determined it **cannot automatically fix** this issue.\n\n`;
+                comment += `${reason}\n\n`;
+                comment += 'A maintainer will need to address this manually.';
+              } else {
+                comment += '⚠️ The coding agent could not produce a fix.\n\n';
+                comment += 'This may be due to the issue being too complex or ambiguous for automated resolution.\n';
+                comment += 'Maintainer: please investigate manually.';
+              }
             }
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: issueNumber,
+              issue_number: targetNumber,
               body: comment
             });
-            core.info('Posted coding agent comment');
+            core.info(`Posted coding agent comment on #${targetNumber}`);

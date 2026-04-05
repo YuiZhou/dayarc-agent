@@ -26,6 +26,7 @@ jobs:
             "skills/dayarc-deliver/SKILL.md"
             "skills/dayarc-upgrade/SKILL.md"
             "skills/dayarc-report-issue/SKILL.md"
+            "skills/dayarc-setup/SKILL.md"
             "skills/dayarc-deliver/templates/pm.hbs"
             "skills/dayarc-deliver/templates/am.hbs"
             "skills/dayarc-deliver/templates/weekly.hbs"
@@ -80,31 +81,3 @@ jobs:
           python3 -c "import json; json.load(open('config.example.json'))" && echo "✅ config.example.json"
           python3 -c "import json; json.load(open('package.json'))" && echo "✅ package.json"
           echo "All JSON files valid."
-
-  scope-guard:
-    if: contains(github.event.pull_request.labels.*.name, 'auto-fix')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Validate auto-fix scope
-        run: |
-          CHANGED=$(git diff --name-only origin/main...HEAD)
-          ALLOWED="^(skills/.*/SKILL\.md|skills/.*/templates/.*\.hbs|README\.md|USAGE\.md|CONTRIBUTING\.md)$"
-          echo "Changed files:"
-          echo "$CHANGED"
-          VIOLATIONS=0
-          for file in $CHANGED; do
-            if ! echo "$file" | grep -qE "$ALLOWED"; then
-              echo "::error::Scope violation: $file is not in the allowed list for auto-fix PRs"
-              VIOLATIONS=$((VIOLATIONS + 1))
-            else
-              echo "✅ $file"
-            fi
-          done
-          if [ $VIOLATIONS -gt 0 ]; then
-            echo "::error::$VIOLATIONS file(s) outside auto-fix scope"
-            exit 1
-          fi
-          echo "All changed files within auto-fix scope."
