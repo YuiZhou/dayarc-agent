@@ -102,7 +102,7 @@ Format the `date`, `week_of`, `month`, and `year` template variables according t
 ### Scheduled (send email)
 1. Build `labels` and `locale` from config (see above).
 2. Render the appropriate .hbs template with brief data + `labels` + `locale`.
-3. **If `locale` is not `en`:** scan the rendered HTML for any remaining English prose in user-generated content fields (activity descriptions, priority descriptions, theme labels, accomplishments, stuck items, suggestions). Translate those strings into the target locale using the same tone conventions used by the upstream skills (e.g., Simplified Chinese professional tone for `zh`). Do not translate Dayarc UI chrome, source breadcrumbs, URLs, code identifiers, or proper nouns.
+3. **If `locale` is not `en`:** scan the rendered HTML for any remaining English prose in user-generated content fields (activity descriptions, priority descriptions, signal descriptions and pass reasons, theme labels, accomplishments, stuck items, drift suggestions, focus/outlook items). Translate those strings into the target locale using the appropriate tone (e.g., Simplified Chinese professional tone for `zh`). Do not translate Dayarc UI chrome, source breadcrumbs, URLs, code identifiers, or proper nouns.
 4. Save rendered HTML to a temp file.
 5. Send via Outlook COM:
 ```powershell

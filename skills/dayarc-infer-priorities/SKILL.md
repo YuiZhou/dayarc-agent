@@ -19,6 +19,6 @@ Flagged emails, saved Teams messages, high-effort activities, meetings, carryove
 
 ## Instructions
 1. Rank order: Outlook flags/Teams saves → direct @mentions → carryover → calendar → high-effort activities → inbound requests.
-2. Each priority: one line describing *what* to do, with source breadcrumb. **Write all descriptions in the language specified by `config.preferences.locale` (default: `en`). For `zh`: use Simplified Chinese professional tone.**
+2. Each priority: one line describing *what* to do, with source breadcrumb.
 3. Assign urgency: 🔴 urgent = today/overdue, 🟡 soon = this week, 🔵 when-free = can wait.
 4. PM brief: max 5. AM brief: max 8.
