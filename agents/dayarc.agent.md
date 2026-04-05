@@ -7,6 +7,8 @@ mcp-servers:
     command: npx
     args: ["-y", "@microsoft/workiq", "mcp"]
     tools: ["*"]
+  # Official GitHub MCP server (https://github.com/github/github-mcp-server).
+  # Provides PR, issue, commit, and notification signals. Requires GITHUB_PERSONAL_ACCESS_TOKEN env var.
   github:
     type: stdio
     command: npx
