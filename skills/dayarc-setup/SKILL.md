@@ -103,6 +103,8 @@ If yes:
    ```
    Use the first hit that exists. If none found, tell the user and skip.
 
+   **Agent name:** The scheduler script auto-detects the correct agent name at runtime (`dayarc:dayarc` for plugin installs, `dayarc` for user-level). No manual configuration needed.
+
 2. **Register scheduled tasks:**
    ```powershell
    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable

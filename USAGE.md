@@ -17,7 +17,7 @@
 
 ```bash
 copilot plugin install YuiZhou/dayarc-agent
-copilot --agent=dayarc
+copilot --agent=dayarc:dayarc
 ```
 
 On first launch, the agent detects it hasn't been configured and walks you through setup interactively — creating your data folder, asking for your identity, and optionally registering the daily scheduler. No separate setup script needed.
@@ -50,7 +50,7 @@ Removes scheduler tasks and agent directory. User data (`~/Documents/dayarc/`) i
 | Method | How |
 |--------|-----|
 | **Plugin update** | `copilot plugin update dayarc` |
-| **Conversational** | Start `copilot --agent=dayarc` and say `upgrade` |
+| **Conversational** | Start `copilot --agent=dayarc:dayarc` and say `upgrade` |
 | **Re-run setup** | `irm .../setup.ps1 \| iex` — detects existing install, does `git pull`, skips config |
 
 ### Migrate to a new machine
@@ -59,7 +59,7 @@ User data syncs automatically via OneDrive — just install the plugin on the ne
 
 ```bash
 copilot plugin install YuiZhou/dayarc-agent
-copilot --agent=dayarc     # agent detects synced data, skips setup
+copilot --agent=dayarc:dayarc     # agent detects synced data, skips setup
 # Then: gh auth login + sign in to Outlook
 ```
 
@@ -87,12 +87,14 @@ Memory, config, and preferences are already there via OneDrive.
 
 ## How to Use
 
+> **Agent name:** Plugin installs use `--agent=dayarc:dayarc`. Script installs use `--agent=dayarc`. All examples below use the plugin form. If you installed via `setup.ps1`, drop the `dayarc:` prefix.
+
 ### Conversational mode (default)
 
 Start a Copilot CLI session with Dayarc:
 
 ```bash
-copilot --agent=dayarc
+copilot --agent=dayarc:dayarc
 ```
 
 Then ask anything in natural language. The agent reads your memory and queries live data to answer.
@@ -106,7 +108,7 @@ Then ask anything in natural language. The agent reads your memory and queries l
 ### 🔍 Ask about priorities
 
 ```
-copilot --agent=dayarc
+copilot --agent=dayarc:dayarc
 
 > What are my priorities today?
 > What should I focus on this morning?
@@ -241,7 +243,7 @@ Unregister-ScheduledTask -TaskName "Dayarc-AM" -Confirm:$false
 Unregister-ScheduledTask -TaskName "Dayarc-PM" -Confirm:$false
 
 # Re-register (ask the agent)
-copilot --agent=dayarc
+copilot --agent=dayarc:dayarc
 > Set up the scheduler
 ```
 
@@ -317,7 +319,7 @@ All files are **human-readable JSON**. You can edit them manually if needed — 
 
 ```bash
 # Start conversational session
-copilot --agent=dayarc
+copilot --agent=dayarc:dayarc
 
 # Example prompts
 "What are my priorities today?"

@@ -328,6 +328,10 @@ if ($existingAM -and $existingPM) {
     }
 }
 
+# ── Resolve agent name ────────────────────────────────────────────────────────
+# Plugin-level agents use "dayarc:dayarc"; user-level agents use "dayarc"
+$agentName = if ($pluginDir) { "dayarc:dayarc" } else { "dayarc" }
+
 # ── Done ─────────────────────────────────────────────────────────────────────
 
 $version = git -C $agentDir describe --tags --always 2>$null
@@ -339,7 +343,7 @@ Write-Host   "╚═════════════════════
 Write-Host   "  Version:  $version"
 Write-Host   "  Agent:    $agentDir"
 Write-Host   "  Data:     $dataDir"
-Write-Host   "  Start:    copilot --agent=dayarc"
+Write-Host   "  Start:    copilot --agent=$agentName"
 Write-Host   ""
 
 # ── Dry-run preview ──────────────────────────────────────────────────────────
@@ -358,7 +362,7 @@ if ($dryrun -match '^[Yy]') {
     $dryrunPrompt = "## DRY RUN MODE`nThis is a preview. Follow the plan below but: skip the idempotency check, do NOT send email (skip Step 5), do NOT write memory files or run tags (skip Step 4). Output the brief to the terminal only. After displaying the brief, ask if the user wants to adjust anything.`n`n$pmPrompt"
     Push-Location $dataDir
     try {
-        copilot --agent=dayarc --prompt $dryrunPrompt
+        copilot --agent=$agentName --prompt $dryrunPrompt
     } finally {
         Pop-Location
     }

@@ -158,7 +158,26 @@ Then run **After Update** steps as normal. Report:
    ```
    Read `am_time` and `pm_time` from the matching entry (default: 08:00 / 20:00).
    If no entry matches this machine, skip this step.
+
+   **Note:** The `scheduler.ps1` script auto-detects the correct agent name at runtime (`dayarc:dayarc` for plugin, `dayarc` for user-level). Re-registering the scheduler after a migration from user-level to plugin (or vice versa) is sufficient — no manual agent name changes needed.
 4. Report the new version (latest tag or commit short hash).
+
+### Migration: User-Level → Plugin
+
+When upgrading from a user-level install (`~/.dayarc-agent/` + `~/.copilot/skills/dayarc-*`) to a plugin install:
+
+1. The agent name changes from `dayarc` to `dayarc:dayarc`.
+2. **The `scheduler.ps1` script handles this automatically** — it detects the install method at startup and uses the correct agent name.
+3. After plugin install, **clean up the old user-level files** to avoid confusion:
+   ```powershell
+   Remove-Item -Path (Join-Path $HOME ".copilot\agents\dayarc.agent.md") -ErrorAction SilentlyContinue
+   Get-ChildItem -Path (Join-Path $HOME ".copilot\skills") -Filter "dayarc-*" -Directory | Remove-Item -Recurse -Force
+   ```
+   If the old `~/.dayarc-agent/` clone is no longer needed:
+   ```powershell
+   Remove-Item -Path (Join-Path $HOME ".dayarc-agent") -Recurse -Force
+   ```
+4. Re-register the scheduler tasks (Step 3 above) so the Task Scheduler points to the plugin's `scheduler.ps1`.
 
 ### Version
 

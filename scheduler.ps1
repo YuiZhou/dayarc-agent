@@ -44,11 +44,31 @@ if (-not $agentDir) {
 }
 
 if (-not $agentDir) {
-    Write-Host "[Dayarc] ERROR: Cannot find agent package. Reinstall with: copilot plugin install YuiZhou/dayarc-agent"
+    Write-Error "[Dayarc] ERROR: Cannot find agent package. Reinstall with: copilot plugin install YuiZhou/dayarc-agent"
     exit 1
 }
 
+# ── Resolve agent name ───────────────────────────────────────────────────────
+# Plugin-level agents use "dayarc:dayarc"; user-level agents use "dayarc"
+if ($pluginHit) {
+    $agentName = "dayarc:dayarc"
+} else {
+    $agentName = "dayarc"
+}
+
 $profileDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "dayarc"
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+# Task Scheduler runs without a console — Write-Host output is lost.
+# Log to ~/Documents/dayarc/logs/{date}-{trigger}.log for diagnostics.
+$logDir = Join-Path $profileDir "logs"
+if (-not (Test-Path $logDir)) { New-Item -Path $logDir -ItemType Directory -Force | Out-Null }
+$logFile = Join-Path $logDir "$(Get-Date -Format 'yyyy-MM-dd')-$trigger.log"
+
+function Log([string]$msg) {
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    "$ts  $msg" | Tee-Object -FilePath $logFile -Append
+}
 
 function Is-LastWorkday {
     param([DateTime]$date)
@@ -62,34 +82,34 @@ function Is-LastWorkday {
 
 $today = Get-Date
 
-Write-Host "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd'))"
+Log "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd')) | Agent: $agentName"
 
 Push-Location $profileDir
 
 if ($trigger -eq "am") {
-    Write-Host "[Dayarc] Running AM brief..."
-    copilot --agent=dayarc --prompt "$agentDir\prompts\am.md"
+    Log "[Dayarc] Running AM brief..."
+    & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\am.md" 2>&1 | Tee-Object -FilePath $logFile -Append
 }
 
 if ($trigger -eq "pm") {
-    Write-Host "[Dayarc] Running PM brief..."
-    copilot --agent=dayarc --prompt "$agentDir\prompts\pm.md"
+    Log "[Dayarc] Running PM brief..."
+    & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\pm.md" 2>&1 | Tee-Object -FilePath $logFile -Append
 
     if ($today.DayOfWeek -eq [DayOfWeek]::Friday) {
-        Write-Host "[Dayarc] Friday -- running Weekly brief..."
-        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md"
+        Log "[Dayarc] Friday -- running Weekly brief..."
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
 
         if (Is-LastWorkday $today) {
-            Write-Host "[Dayarc] Last workday of month -- running Monthly brief..."
-            copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md"
+            Log "[Dayarc] Last workday of month -- running Monthly brief..."
+            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
         }
     } elseif (Is-LastWorkday $today) {
-        Write-Host "[Dayarc] Last workday of month (non-Friday) -- running Weekly + Monthly..."
-        copilot --agent=dayarc --prompt "$agentDir\prompts\weekly.md"
-        copilot --agent=dayarc --prompt "$agentDir\prompts\monthly.md"
+        Log "[Dayarc] Last workday of month (non-Friday) -- running Weekly + Monthly..."
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
     }
 }
 
 Pop-Location
 
-Write-Host "[Dayarc] Done."
+Log "[Dayarc] Done."
