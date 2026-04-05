@@ -17,6 +17,11 @@
 - Coding agent `/continue` with **session resume** — Post `/continue` on a PR to resume the original Copilot session (via `actions/cache` + `--resume`); agent has full memory of prior reasoning and reads PR feedback directly via GitHub MCP tools
 - `.github/prompts/coding-prompt.md` — Coding agent prompt (supports new + continue modes)
 - Re-run detection: existing install → `git pull`, existing config → skip prompts
+- **Localization (#17)** — Brief language follows user locale:
+  - `config.json`: new top-level `locale` field (BCP 47 code, e.g. `en`, `zh`, `ja`). Defaults to `en` if absent.
+  - `dayarc-setup`: collects preferred language during setup; infers locale from conversation language and suggests it to the user; accepts any BCP 47 code.
+  - `dayarc-deliver`: after rendering the English brief, translates the full HTML body (and email subject) into the user's locale before sending. HTML tags, styles, emoji, and breadcrumb links are preserved; only visible text is translated. No-op when `locale` is `en`.
+  - Templates: `lang="{{locale}}"` on `<html>` for correct rendering in email clients; CJK font fallbacks (`PingFang SC`, `Microsoft YaHei`) added to font stack.
 
 ### Changed
 - Renamed the product, agent package, skill paths, prompts, scheduler task names, and document paths from Briefing to Dayarc

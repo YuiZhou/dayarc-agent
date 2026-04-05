@@ -26,11 +26,11 @@ $mail.HTMLBody = Get-Content "{html-path}" -Raw
 $mail.Send()
 ```
 
-Email subjects:
-- PM `en`: `🌙 Evening Wrap-up — {date}` · `zh`: `🌙 今日总结 — {date}`
-- AM `en`: `☀️ Morning Brief — {date}` · `zh`: `☀️ 早间简报 — {date}`
-- Weekly `en`: `📊 Weekly — Week of {date}` · `zh`: `📊 本周回顾 — {date}当周`
-- Monthly `en`: `📅 Monthly — {month} {year}` · `zh`: `📅 本月报告 — {year}年{month}月`
+Email subjects (translate the subject too if `locale` is not `en`):
+- PM: `🌙 Evening Wrap-up — {date}`
+- AM: `☀️ Morning Brief — {date}`
+- Weekly: `📊 Weekly — Week of {date}`
+- Monthly: `📅 Monthly — {month} {year}`
 
 ### Conversational (terminal)
 Render the brief as formatted text in the terminal. If `locale` is not `en`, translate the output before displaying. Do NOT send email unless the user explicitly says "send it".

@@ -61,7 +61,9 @@ Ask the user for four pieces of information, one at a time:
 1. **Full name** — "What's your full name as it appears in @mentions? (e.g., Yu Zhou — not a nickname)"
 2. **Work email** — "What's your work email address?"
 3. **GitHub username(s)** — "What are your GitHub usernames? (comma-separated if you have multiple, e.g., personal + enterprise/EMU account)"
-4. **Preferred language** — "What language would you like your briefs in? Type `en` for English or `zh` for Chinese (简体中文). Default is `en`."
+4. **Preferred language** — Infer the user's preferred language from the conversation so far (e.g., if the user has been writing in Chinese, suggest `zh`; if in English, suggest `en`). Ask:
+   > "What language would you like your briefs in? I'll use a BCP 47 locale code — for example `en` for English, `zh` for Simplified Chinese, `ja` for Japanese, `fr` for French. Based on our conversation I'd suggest `{inferred_locale}`. Press Enter to accept or type a different code."
+   Accept any valid BCP 47 locale code. Default to `en` if the user skips the question.
 
 ### Step 3: Write config.json
 
