@@ -33,24 +33,21 @@ If no replies found, continue to Step 1.
 
 ## Step 1: COLLECT
 
-**Bootstrap check:** Use **dayarc-memory** to list files in `daily/`. If no `daily-profile-*.json` files exist, this is a **bootstrap run** — set `LOOKBACK = 7 days` and use `"last 7 days"` as the query window for all Work IQ and GitHub queries below. Otherwise set `LOOKBACK = today`.
+**Bootstrap check:** Use **dayarc-memory** to list files in `daily/`. If no `daily-profile-*.json` files exist, this is a **bootstrap run** — set `LOOKBACK = 7 days` and use `"last 7 days"` as the query window for all connector queries below. Otherwise set `LOOKBACK = today`.
 
-Query **Work IQ** (ask_work_iq) for data over the LOOKBACK window:
-- "What emails did I send {LOOKBACK}?"
-- "What Teams messages did I send {LOOKBACK}?"
-- "What emails are flagged in my inbox?"
-- "What Teams messages have I saved?"
-- "What meetings did I have {LOOKBACK}?"
-- "What documents did I edit {LOOKBACK}?"
+**Discover connectors:** Read `~/Documents/dayarc/config.json` → `connectors[]`. If no `connectors` field is present, use the built-in defaults (M365 `work-iq` + `github`). For each connector, query its MCP server for the signal types it provides, using the templates below.
 
-Query **GitHub MCP** (authenticated account) for data over the LOOKBACK window:
-- Commits authored {LOOKBACK}
-- PRs opened or reviewed {LOOKBACK}
-- Issues commented on or closed {LOOKBACK}
-- Reviews submitted {LOOKBACK}
-- **Notifications:** search for `reason:mention`, `reason:review_requested`, `reason:assign` since the start of the LOOKBACK window — these are high-priority signals the user may have missed
+| Signal type | Query template |
+|---|---|
+| `outgoing_messages` | "What messages, commits, PRs, or work items did I send, author, or update {LOOKBACK}?" |
+| `flagged_items` | "What emails, tasks, or items are flagged, starred, or saved for my attention?" |
+| `calendar` | "What meetings or events did I have {LOOKBACK}?" |
+| `documents` | "What documents or wiki pages did I edit {LOOKBACK}?" |
+| `incoming_signals` | "What @mentions, notifications, or messages did I receive {LOOKBACK}?" |
 
-**Note:** For non-active GitHub accounts (e.g. EMU/corp), notification emails are captured by Work IQ via Outlook. Cross-reference both sources.
+**GitHub-specific note:** When querying the `github` connector for `incoming_signals`, also search for `reason:mention`, `reason:review_requested`, `reason:assign` — these are high-priority signals the user may have missed. Run queries for **each** username in `config.json` → `github_usernames`. For usernames not covered by the active `gh` account (e.g. EMU/corp), notification emails are captured by the M365 connector via Outlook — cross-reference both sources.
+
+**Graceful degradation:** If a connector's MCP server is unavailable, note the gap and continue with available data.
 
 ## Step 2: READ
 

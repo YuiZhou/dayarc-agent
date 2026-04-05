@@ -20,12 +20,19 @@ Agent Package (installed)                      User Data ~/Documents/dayarc/ (po
 | Component | Provider | Auth |
 |-----------|----------|------|
 | Agent + LLM | Copilot CLI (GPT-5.4) | `gh auth login` |
-| M365 data | Work IQ MCP | Signed-in M365 |
-| GitHub data | GitHub MCP | `gh auth token` |
+| Signal sources | Pluggable connectors (MCP servers) — see `CONNECTORS.md` | Per-connector |
+| M365 data (default) | Work IQ MCP | Signed-in M365 |
+| GitHub data (default) | GitHub MCP | `gh auth token` |
 | Memory | JSON in `~/Documents/dayarc/memory/` | — |
 | Email | Outlook COM via shell | Signed-in Outlook |
 
 **Portability:** User data lives in `~/Documents/dayarc/` — auto-synced across corp machines via OneDrive/SharePoint. Install agent on new machine → run `irm .../setup.ps1 | iex` → `gh auth login` → works. Agent code + user data = Markdown + JSON (cross-platform). Only scheduler + Outlook COM are platform-specific.
+
+## 1c. Signal Source Connectors
+
+Each brief's COLLECT step queries **connectors** — MCP servers declared in the agent profile. Dayarc ships with two built-in connectors (M365 via Work IQ and GitHub). Community connectors (ADO, Jira, Slack, Linear, etc.) can be added by declaring an MCP server in the agent profile and adding a `connectors` entry in `config.json`.
+
+See [`CONNECTORS.md`](./CONNECTORS.md) for the full interface spec and connector list.
 
 ## 1b. Install & Upgrade
 
@@ -56,7 +63,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 **PM (8 PM):**
 ```
 0. CHECK REPLIES  Parse brief reply corrections → update daily profile
-1. COLLECT    Work IQ (sent, Teams sent, flagged, saved, meetings, docs) + GitHub (commits, PRs, issues, reviews)
+1. COLLECT    Configured connectors (MCP servers from config.json → connectors[]) — each queried for its declared signal types
 2. READ       daily-profile-{prev-date} (skip on bootstrap)
 3. SYNTHESIZE classify_activity → infer_priorities → learn_user_profile
              Produce: A."What I Did"(≤15) B."Priorities"(≤5) C."Unfinished"(≤5) + source breadcrumbs
@@ -67,7 +74,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 **AM (8 AM):**
 ```
 0. CHECK REPLIES  Parse corrections → update daily profile
-1. COLLECT    Work IQ (flagged, saved, new emails/mentions, calendar) + GitHub (notifications, reviews, issues)
+1. COLLECT    Configured connectors — each queried for its signal types (flagged_items, calendar, incoming_signals, assigned_work)
              Monday: extend since to Sat+Sun
 2. READ       daily-profile-{latest} + weekly-current + weekly-prev + monthly
 3. SYNTHESIZE infer_priorities + filter_signals + detect_drift + learning from profile

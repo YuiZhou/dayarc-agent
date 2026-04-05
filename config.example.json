@@ -15,5 +15,17 @@
   },
   "scheduler": [
     { "machine": "DESKTOP-ABC", "am_time": "08:00", "pm_time": "20:00" }
+  ],
+  "connectors": [
+    {
+      "name": "work-iq",
+      "label": "M365 (Outlook + Teams + SharePoint)",
+      "provides": ["outgoing_messages", "flagged_items", "calendar", "documents", "incoming_signals"]
+    },
+    {
+      "name": "github",
+      "label": "GitHub",
+      "provides": ["outgoing_messages", "assigned_work", "incoming_signals"]
+    }
   ]
 }

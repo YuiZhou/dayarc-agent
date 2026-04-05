@@ -33,28 +33,25 @@ If no replies found, continue to Step 1.
 
 ## Step 1: COLLECT
 
-Query **Work IQ** (ask_work_iq) for overnight/new signals:
-- "What flagged emails do I have?"
-- "What saved Teams messages do I have?"
-- "What new emails arrived since yesterday evening?"
-- "What new Teams @mentions do I have?"
-- "What meetings do I have today?"
+**Discover connectors:** Read `~/Documents/dayarc/config.json` → `connectors[]`. If no `connectors` field is present, use the built-in defaults (M365 `work-iq` + `github`). For each connector, query its MCP server for the signal types it provides, using the templates below.
 
-**Monday extension:** If today is Monday, extend lookback to cover Saturday and Sunday:
-- "What emails arrived since Friday evening?"
-- "What Teams messages arrived since Friday evening?"
+| Signal type | Query template |
+|---|---|
+| `flagged_items` | "What emails, tasks, or items are flagged, starred, or saved for my attention?" |
+| `calendar` | "What meetings or events do I have today?" |
+| `incoming_signals` | "What new @mentions, notifications, or messages did I receive since {cutoff_timestamp}?" |
+| `assigned_work` | "What issues, PRs, or work items are currently assigned to me or awaiting my review?" |
 
-Query **GitHub MCP** (authenticated account):
-- Notifications since last check — specifically look for:
-  - `reason:mention` — someone @mentioned the user
-  - `reason:review_requested` — someone requested a PR review
-  - `reason:assign` — an issue or PR was assigned to the user
-- PRs awaiting my review (search: `is:pr review-requested:{username}` for **each** github_usernames entry)
-- Issues assigned to me (search: `is:issue assignee:{username}` for **each** github_usernames entry)
+**Monday extension:** If today is Monday, extend the `incoming_signals` lookback to cover Saturday and Sunday when querying connectors that provide `incoming_signals`.
 
-**Note:** GitHub MCP can only fetch notifications for the active `gh` account. For other accounts (e.g. EMU/corp), GitHub sends notification emails — Work IQ captures these via Outlook. Cross-reference both sources to avoid missing items.
+**GitHub-specific note:** When querying the `github` connector for `assigned_work` and `incoming_signals`, specifically look for:
+- Notifications with `reason:mention`, `reason:review_requested`, `reason:assign` since {cutoff_timestamp}
+- PRs awaiting review (`is:pr review-requested:{username}`) for **each** `github_usernames` entry
+- Issues assigned to the user (`is:issue assignee:{username}`) for **each** `github_usernames` entry
 
-These are high-priority signals — surface them prominently even if other data is sparse.
+For GitHub usernames not covered by the active `gh` account (e.g. EMU/corp), notification emails are captured by the M365 connector via Outlook — cross-reference both sources. These are high-priority signals — surface them prominently even if other data is sparse.
+
+**Graceful degradation:** If a connector's MCP server is unavailable, note the gap and continue with available data.
 
 ## Step 2: READ
 

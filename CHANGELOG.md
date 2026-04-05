@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased] — 2026-04-05
+
+### Added
+- **Pluggable signal source connectors** (#16) — Signal collection is now connector-agnostic. Any MCP server can be declared as a Dayarc connector.
+  - `CONNECTORS.md` — interface specification: signal types (`outgoing_messages`, `flagged_items`, `calendar`, `documents`, `incoming_signals`, `assigned_work`), MCP server declaration format, query contract, and community connector guide.
+  - `connectors/ado/README.md` — Azure DevOps community connector example.
+  - `config.example.json` — new `connectors[]` field declaring which MCP servers provide which signal types.
+  - `agents/dayarc.agent.md` — GitHub MCP server added to frontmatter; "What You Know" updated to reflect connector system.
+  - COLLECT steps in `prompts/pm.md` and `prompts/am.md` refactored to read from `config.json → connectors[]` instead of hardcoding Work IQ + GitHub queries.
+
 ## [Unreleased] — 2026-03-17
 
 ### Added
