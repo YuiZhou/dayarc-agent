@@ -21,6 +21,6 @@ Incoming signals (new emails, Teams messages, GitHub notifications), user profil
 ## Instructions
 1. Auto-pass (relevance=1.0): flagged, saved, direct @mention, GitHub review_requested, GitHub assigned. pass_reason = "flagged"/"saved"/"direct mention"/"review requested"/"assigned".
 2. Others: score 0-1 based on overlap with profile's focus_areas, key_contacts, active_threads.
-3. Include if relevance ≥ 0.4. Write pass_reason explaining which profile element matched.
+3. Include if relevance ≥ 0.4. Write pass_reason explaining which profile element matched. **Write all `description` and `pass_reason` fields in the language specified by `config.preferences.locale` (default: `en`). For `zh`: use Simplified Chinese professional tone.**
 4. Below threshold: silently drop.
 5. Max 10 signals. Sort by relevance descending.

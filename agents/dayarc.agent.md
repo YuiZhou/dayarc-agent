@@ -21,7 +21,7 @@ Test-Path (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "dayarc\confi
 
 - **If config.json is missing:** Greet the user warmly and trigger the **dayarc-setup** skill immediately. Do NOT attempt any brief, query, or data collection until setup is complete.
   > 👋 Welcome to Dayarc! I see this is your first time here — let me get you set up. It'll only take a minute.
-- **If config.json exists:** Read it for user identity and continue normally.
+- **If config.json exists:** Read it for user identity and continue normally. Also read `preferences.locale` (default: `"en"` if absent).
 
 ## What You Know
 
@@ -40,6 +40,7 @@ When invoked with a plan prompt (pm.md, am.md, weekly.md, monthly.md), follow th
 
 ## Rules
 - Every brief item must describe *what* it is + a source breadcrumb (link, thread, channel).
+- **Locale:** All user-facing text — brief content, descriptions, suggestions, section headings, email subjects, and status messages — must be written in the language matching `config.preferences.locale`. Supported locales: `en` (English, default), `zh` (Simplified Chinese), `ja` (Japanese). When locale is `zh` adapt urgency labels, date format, and tone norms to Chinese professional conventions. When locale is `ja` adapt to Japanese professional conventions.
 - **Breadcrumb quality:** Teams meeting chat links (`19:meeting_...@thread.v2`) frequently break after the meeting ends. When you encounter one, always include fallback context (meeting title, date, participants) so the user can find the item without the link. Mark with ⚠️.
 - Read memory-schemas.md before writing any JSON file.
 - Never invent data. Only report what signals and memory show.

@@ -5,6 +5,7 @@
     "github_usernames": ["your-handle"]
   },
   "preferences": {
+    "locale": "en",
     "brief_max_items": 15,
     "priority_max_items": 5,
     "unfinished_max_items": 5,
