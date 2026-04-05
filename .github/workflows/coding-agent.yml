@@ -70,7 +70,7 @@ jobs:
               .substring(0, 40);
             core.setOutput('slug', slug);
 
-      # ── Step 1b: Resolve PR + issue (continue session) ────────────────────
+      # ── Step 1b: Resolve PR (continue session) ─────────────────────────────
       - name: Resolve PR (continue)
         if: steps.mode.outputs.mode == 'continue'
         id: resolve_pr
@@ -86,53 +86,14 @@ jobs:
 
             core.setOutput('branch', pr.data.head.ref);
             core.setOutput('pr_number', String(prNumber));
-            core.setOutput('pr_title', pr.data.title);
-            core.setOutput('pr_body', pr.data.body || '');
 
-            // Extract issue number from PR body (## Fixes #N)
-            const issueMatch = (pr.data.body || '').match(/Fixes #(\d+)/);
-            let issueNumber = '';
-            let issueTitle = '';
-            let issueBody = '';
-            if (issueMatch) {
-              issueNumber = issueMatch[1];
-              const { data: issue } = await github.rest.issues.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: parseInt(issueNumber)
-              });
-              issueTitle = issue.title;
-              issueBody = issue.body || '(no body)';
-            }
-            core.setOutput('issue_number', issueNumber);
-            core.setOutput('issue_title', issueTitle);
-            core.setOutput('issue_body', issueBody);
-
-            // Collect PR review comments + conversation comments
-            const reviewComments = await github.rest.pulls.listReviewComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-              per_page: 100
-            });
-            const issueComments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              per_page: 100
-            });
-
-            let feedback = '';
-            // Filter out bot comments and the /continue trigger itself
-            for (const c of issueComments.data) {
-              if (c.body.includes('🤖') || c.body.trim() === '/continue') continue;
-              feedback += `**${c.user.login}** (conversation):\n${c.body}\n\n---\n\n`;
-            }
-            for (const c of reviewComments.data) {
-              const path = c.path ? ` on \`${c.path}\`` : '';
-              feedback += `**${c.user.login}** (code review${path}):\n${c.body}\n\n---\n\n`;
-            }
-            core.setOutput('feedback', feedback || 'No new feedback found.');
+            // Extract session ID from PR body marker
+            // <!-- dayarc-session: id={uuid}, issue={N} -->
+            const sessionMatch = (pr.data.body || '').match(/dayarc-session:.*?id=([0-9a-f-]{36})/);
+            const sessionId = sessionMatch ? sessionMatch[1] : '';
+            core.setOutput('session_id', sessionId);
+            core.info(`Session ID: ${sessionId || '(none — will start fresh)'}`);
+            core.info(`Branch: ${pr.data.head.ref}`);
 
       # ── Step 2: Checkout ──────────────────────────────────────────────────
       - uses: actions/checkout@v4
@@ -143,20 +104,14 @@ jobs:
         with:
           ref: ${{ steps.resolve_pr.outputs.branch }}
 
-      # ── Step 3: Gather triage context (both modes) ────────────────────────
+      # ── Step 3: Gather triage context (new session only) ────────────────────
       - name: Gather triage context
+        if: steps.mode.outputs.mode == 'new'
         id: gather
         uses: actions/github-script@v7
         with:
           script: |
-            // Determine issue number based on mode
-            const mode = '${{ steps.mode.outputs.mode }}';
-            let issueNumber;
-            if (mode === 'continue') {
-              issueNumber = parseInt('${{ steps.resolve_pr.outputs.issue_number }}');
-            } else {
-              issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
-            }
+            const issueNumber = parseInt('${{ steps.resolve.outputs.number }}');
 
             if (!issueNumber) {
               core.setOutput('triage_comment', '');
@@ -184,8 +139,9 @@ jobs:
             core.setOutput('triage_comment', triageComment);
             core.setOutput('affected_area', affectedArea);
 
-      # ── Step 4: Read source files ─────────────────────────────────────────
+      # ── Step 4: Read source files (new session only) ────────────────────────
       - name: Read source files
+        if: steps.mode.outputs.mode == 'new'
         id: sources
         env:
           AFFECTED: ${{ steps.gather.outputs.affected_area }}
@@ -243,52 +199,6 @@ jobs:
           PROMPT_DELIM
           echo "Prompt built: $(wc -c < coding-input.md) bytes"
 
-      # Continue session: issue + triage + PR feedback + source files
-      - name: Build prompt (continue)
-        if: steps.mode.outputs.mode == 'continue'
-        env:
-          ISSUE_NUMBER: ${{ steps.resolve_pr.outputs.issue_number }}
-          ISSUE_TITLE: ${{ steps.resolve_pr.outputs.issue_title }}
-          ISSUE_BODY: ${{ steps.resolve_pr.outputs.issue_body }}
-          PR_NUMBER: ${{ steps.resolve_pr.outputs.pr_number }}
-          PR_TITLE: ${{ steps.resolve_pr.outputs.pr_title }}
-          TRIAGE_COMMENT: ${{ steps.gather.outputs.triage_comment }}
-          FEEDBACK: ${{ steps.resolve_pr.outputs.feedback }}
-        run: |
-          cat > coding-input.md << 'HEADER_DELIM'
-          # Continuing PR review — address feedback
-
-          You are **continuing** work on an existing PR. A previous coding agent session
-          already made changes. Now there is reviewer feedback to address.
-
-          **Your job:** Read the feedback below, understand what needs to change, and
-          make additional edits. Push targeted fixes — do NOT redo work that is already correct.
-
-          HEADER_DELIM
-
-          printf '## Original Issue #%s: %s\n\n%s\n\n' \
-            "$ISSUE_NUMBER" "$ISSUE_TITLE" "$ISSUE_BODY" >> coding-input.md
-
-          if [ -n "$TRIAGE_COMMENT" ]; then
-            printf '## Triage Analysis\n\n%s\n\n' "$TRIAGE_COMMENT" >> coding-input.md
-          fi
-
-          printf '## PR #%s: %s\n\n' "$PR_NUMBER" "$PR_TITLE" >> coding-input.md
-          printf '## Reviewer Feedback\n\n%s\n\n' "$FEEDBACK" >> coding-input.md
-          printf '## Current Source Files\n\n' >> coding-input.md
-          cat source-files.txt >> coding-input.md
-
-          cat >> coding-input.md << 'PROMPT_DELIM'
-
-          ## Project Context
-
-          Read @spec.md and @design.md for product context.
-          Read @memory-schemas.md if the fix involves memory-related skills.
-
-          Follow the instructions in @.github/prompts/coding-prompt.md
-          PROMPT_DELIM
-          echo "Continue prompt built: $(wc -c < coding-input.md) bytes"
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -300,14 +210,65 @@ jobs:
         id: baseline
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      # ── Step 5b: Restore session cache (continue only) ──────────────────────
+      - name: Restore session cache
+        if: steps.mode.outputs.mode == 'continue' && steps.resolve_pr.outputs.session_id != ''
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.copilot/session-state/${{ steps.resolve_pr.outputs.session_id }}
+          key: copilot-session-${{ steps.resolve_pr.outputs.session_id }}-latest
+          restore-keys: |
+            copilot-session-${{ steps.resolve_pr.outputs.session_id }}-
+
       # ── Step 6: Run Copilot CLI ───────────────────────────────────────────
-      - name: Run Copilot CLI
+      - name: Run Copilot CLI (new session)
+        if: steps.mode.outputs.mode == 'new'
         timeout-minutes: 10
         env:
           GH_TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
           PROMPT=$(cat coding-input.md)
           copilot --allow-all --prompt "$PROMPT" 2>copilot-stderr.log | tee copilot-output.txt
+
+      - name: Run Copilot CLI (resume session)
+        if: steps.mode.outputs.mode == 'continue'
+        timeout-minutes: 10
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+          SESSION_ID: ${{ steps.resolve_pr.outputs.session_id }}
+          PR_NUMBER: ${{ steps.mode.outputs.pr_number }}
+        run: |
+          RESUME_ARGS=""
+          if [ -n "$SESSION_ID" ]; then
+            echo "Resuming session: $SESSION_ID"
+            RESUME_ARGS="--resume=$SESSION_ID"
+          else
+            echo "No session ID found — starting fresh session for continue"
+          fi
+
+          copilot --allow-all $RESUME_ARGS \
+            --prompt "Review feedback has been posted on PR #${PR_NUMBER} in this repository. Read the PR review comments and conversation comments, then address the feedback. Follow the instructions in @.github/prompts/coding-prompt.md" \
+            2>copilot-stderr.log | tee copilot-output.txt
+
+      # ── Step 6b: Save session ID ──────────────────────────────────────────
+      - name: Extract session ID
+        id: session
+        run: |
+          # Find the most recently modified session directory
+          SESSION_ID=$(ls -t ~/.copilot/session-state/ 2>/dev/null | head -1)
+          if [ -n "$SESSION_ID" ]; then
+            echo "session_id=$SESSION_ID" >> "$GITHUB_OUTPUT"
+            echo "Found session: $SESSION_ID"
+          else
+            echo "No session state found"
+          fi
+
+      - name: Save session cache
+        if: steps.session.outputs.session_id != ''
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.copilot/session-state/${{ steps.session.outputs.session_id }}
+          key: copilot-session-${{ steps.session.outputs.session_id }}-${{ github.run_id }}
 
       # ── Step 7: Detect changes ────────────────────────────────────────────
       - name: Detect changes
@@ -370,6 +331,7 @@ jobs:
           ISSUE_NUM="${{ steps.resolve.outputs.number }}"
           SLUG="${{ steps.resolve.outputs.slug }}"
           BRANCH="fix/${ISSUE_NUM}-${SLUG}"
+          SESSION_ID="${{ steps.session.outputs.session_id }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -390,7 +352,6 @@ jobs:
           git push origin "$BRANCH" --force
 
           SUMMARY_BODY="${DETECT_SUMMARY:-No detailed summary available.}"
-          RUN_ID="${{ github.run_id }}"
 
           cat > /tmp/pr-body.md << BODY_DELIM
           ## Fixes #${ISSUE_NUM}
@@ -415,7 +376,7 @@ jobs:
 
           Add review comments, then post \`/continue\` to have the coding agent address your feedback.
 
-          <!-- dayarc-session: issue=${ISSUE_NUM}, run=${RUN_ID} -->
+          <!-- dayarc-session: id=${SESSION_ID}, issue=${ISSUE_NUM} -->
 
           ---
           _Generated by Dayarc coding agent._
@@ -435,26 +396,18 @@ jobs:
       - name: Push commits to PR branch
         if: steps.detect.outputs.action == 'fix' && steps.mode.outputs.mode == 'continue'
         id: push
-        env:
-          DETECT_SUMMARY: ${{ steps.detect.outputs.summary }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          BASELINE="${{ steps.baseline.outputs.sha }}"
-          git reset --soft "$BASELINE"
-
-          git add -A
-          git reset HEAD -- summary.md unable.md coding-input.md source-files.txt copilot-output.txt copilot-stderr.log 2>/dev/null || true
-
-          SUMMARY="Address review feedback"
-          if [ -n "$DETECT_SUMMARY" ]; then
-            SUMMARY=$(printf '%s' "$DETECT_SUMMARY" | head -5 | tr '\n' ' ' | cut -c1-100)
+          # Stage any cleanup from Step 7 (temp files removed) as an
+          # amend to the last Copilot commit, keeping history linear.
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            git add -A
+            git commit --amend --no-edit
           fi
 
-          git commit -m "fix: ${SUMMARY}"
           git push origin HEAD
-
           echo "Pushed to branch: ${{ steps.resolve_pr.outputs.branch }}"
 
       # ── Step 9: Comment ───────────────────────────────────────────────────
