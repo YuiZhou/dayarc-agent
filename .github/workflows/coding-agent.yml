@@ -142,6 +142,7 @@ jobs:
         if: steps.mode.outputs.mode == 'continue'
         with:
           ref: ${{ steps.resolve_pr.outputs.branch }}
+          fetch-depth: 0
 
       # ── Step 3: Gather triage context (both modes) ────────────────────────
       - name: Gather triage context
@@ -453,7 +454,11 @@ jobs:
           fi
 
           git commit -m "fix: ${SUMMARY}"
-          git push origin HEAD
+
+          # Force-with-lease: safe force push needed because git reset --soft
+          # rewrites history (squashes Copilot's intermediate commits).
+          # --force-with-lease ensures we only overwrite what we checked out.
+          git push --force-with-lease origin HEAD
 
           echo "Pushed to branch: ${{ steps.resolve_pr.outputs.branch }}"
 
