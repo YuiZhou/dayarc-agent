@@ -4,6 +4,7 @@
     "email": "you@example.com",
     "github_usernames": ["your-handle"]
   },
+  "locale": "en",
   "preferences": {
     "brief_max_items": 15,
     "priority_max_items": 5,

@@ -56,11 +56,12 @@ If no OneDrive detected, create directories immediately.
 
 ### Step 2: Collect Identity
 
-Ask the user for three pieces of information, one at a time:
+Ask the user for four pieces of information, one at a time:
 
 1. **Full name** — "What's your full name as it appears in @mentions? (e.g., Yu Zhou — not a nickname)"
 2. **Work email** — "What's your work email address?"
 3. **GitHub username(s)** — "What are your GitHub usernames? (comma-separated if you have multiple, e.g., personal + enterprise/EMU account)"
+4. **Preferred language** — "What language would you like your briefs in? Type `en` for English or `zh` for Chinese (简体中文). Default is `en`."
 
 ### Step 3: Write config.json
 
@@ -73,6 +74,7 @@ Write to `~/Documents/dayarc/config.json`:
     "email": "<email from Step 2>",
     "github_usernames": ["<handle1>", "<handle2>"]
   },
+  "locale": "<locale from Step 2, default 'en'>",
   "preferences": {
     "brief_max_items": 15,
     "priority_max_items": 5,
