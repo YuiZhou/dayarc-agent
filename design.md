@@ -37,7 +37,9 @@ The COLLECT step (Step 1 in `pm.md` and `am.md`) is connector-agnostic. Signal s
 
 **Shipped connectors:** `work-iq` (M365) and `github`. Neither is required — teams that don't use M365 can remove `work-iq`; teams without GitHub can remove `github`.
 
-**Community connectors:** Any tool (ADO, Jira, Linear, Slack, etc.) can be plugged in by publishing an MCP server and registering it in `mcp.json` + `config.json`. Core skills (`memory`, `classify_activity`, `infer_priorities`, etc.) are unchanged. See `connectors/CONNECTOR-INTERFACE.md` for the interface spec and `connectors/jira/README.md` for an example.
+**Community connectors:** Any tool (ADO, Jira, Linear, Slack, etc.) can be plugged in by publishing an MCP server and registering it in `mcp.json` + `config.json`. The recommended path is conversational: the user says *"connect Jira"* and the **`dayarc-add-connector`** skill guides them through requirements, generates a custom COLLECT skill, and writes all config. Core skills (`memory`, `classify_activity`, `infer_priorities`, etc.) are unchanged. See `connectors/CONNECTOR-INTERFACE.md` for the interface spec and `connectors/jira/README.md` for an example.
+
+**Generated connector skills** are written to `~/.copilot/skills/dayarc-connect-{tool}/` — outside the agent package, so they survive `dayarc-upgrade`. The connector's MCP server config is stored in `config.json → connectors[].mcp` (credential variable names only, no secrets); `dayarc-upgrade` re-applies these entries to `mcp.json` after each pull so MCP server registrations are not lost.
 
 The synthesis skills are deliberately unaware of signal source — they receive a merged signal set regardless of which connectors produced it.
 

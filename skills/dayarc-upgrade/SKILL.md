@@ -143,7 +143,8 @@ Then run **After Update** steps as normal. Report:
 
 1. Read `CHANGELOG.md` and summarize what changed since the previous HEAD.
 2. **Git clone only:** Copy updated files to `~/.copilot/` (agent profile + skills). Skip for plugin installs — the plugin system handles this.
-3. **Re-register scheduler if this machine owns one:** Read `~/Documents/dayarc/config.json`. The `scheduler` field is an array of `{ machine, am_time, pm_time }` entries. Find the entry where `machine` matches `$env:COMPUTERNAME`. If found, find the `scheduler.ps1` path (same discovery logic as the scheduler script itself) and re-register:
+3. **Re-apply user connector MCP entries:** Read `~/Documents/dayarc/config.json → connectors`. For each connector entry that has an `mcp` field, check if the corresponding key exists in the live `mcp.json`. If not (i.e., the upgrade overwrote it), re-add the entry. The `mcp.env_vars` field lists credential variable names — add them with `"REPLACE_ME"` as the value if they're missing. Tell the user: "Restored MCP config for connector(s): {names}. Your credentials are still in mcp.json — no action needed." Skip this step if no connector has an `mcp` field.
+4. **Re-register scheduler if this machine owns one:** Read `~/Documents/dayarc/config.json`. The `scheduler` field is an array of `{ machine, am_time, pm_time }` entries. Find the entry where `machine` matches `$env:COMPUTERNAME`. If found, find the `scheduler.ps1` path (same discovery logic as the scheduler script itself) and re-register:
    ```powershell
    # Find scheduler.ps1 (plugin or clone)
    $pluginHit = Get-ChildItem -Path (Join-Path $HOME ".copilot\installed-plugins") -Filter "scheduler.ps1" -Recurse -ErrorAction SilentlyContinue | Where-Object { (Split-Path $_.DirectoryName -Leaf) -ne "skills" } | Select-Object -First 1

@@ -3,14 +3,17 @@
 ## [Unreleased] — 2026-04-05
 
 ### Added
-- `connectors/CONNECTOR-INTERFACE.md` — Signal source interface spec: defines signal categories, query contract, signal shape, and how to declare/register a connector
-- `connectors/jira/README.md` — Community Jira connector example (provides `flagged_items`, `notifications`, `assigned_items`)
-- `config.example.json` — Added `connectors` array mapping MCP server names to signal categories
+- `connectors/CONNECTOR-INTERFACE.md` — Signal source interface spec: defines signal categories, query contract, signal shape, and how to declare/register a connector; documents `config` fields, `skill` (BYO skill), and `mcp` (upgrade-preservation) fields; documents conversational setup via `dayarc-add-connector`
+- `connectors/jira/README.md` — Community Jira connector example (provides `flagged_items`, `notifications`, `assigned_items`); includes `config` field table and "Advanced: BYO Skill" section
+- `skills/dayarc-add-connector` — Conversational connector setup skill: collects requirements, generates a custom COLLECT skill, writes it to `~/.copilot/skills/dayarc-connect-{tool}/` (upgrade-safe), updates `mcp.json` and `config.json`
+- `config.example.json` — Added `connectors` array with `config` blocks; connector entries support `skill`, `config`, and `mcp` fields
 
 ### Changed
-- `prompts/pm.md` — COLLECT step refactored to be connector-agnostic: reads active connectors from `config.json → connectors`, queries each connector for the signal categories it declares; falls back to Work IQ + GitHub defaults if `connectors` is absent
+- `prompts/pm.md` — COLLECT step refactored to be connector-agnostic: reads active connectors from `config.json → connectors`, dispatches to BYO skill when declared, queries each connector using its `config` block for identity/filter scoping; falls back to Work IQ + GitHub defaults if `connectors` is absent
 - `prompts/am.md` — Same connector-agnostic refactor for AM COLLECT step
-- `design.md` — Architecture section updated with pluggable connector model (§1a)
+- `design.md` — Architecture section updated with pluggable connector model (§1a), including conversational setup flow and upgrade-safety design
+- `skills/dayarc-upgrade` — After Update step now re-applies user connector MCP entries from `config.json → connectors[].mcp` back into `mcp.json` after a pull (upgrade-safe connector persistence)
+- `agents/dayarc.agent.md` — Added `dayarc-add-connector` trigger rule
 
 ## [Unreleased] — 2026-03-17
 

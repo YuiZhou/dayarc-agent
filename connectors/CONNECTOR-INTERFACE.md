@@ -83,6 +83,24 @@ The `source_breadcrumb` field is **required**. If a connector cannot provide a s
 
 ## Declaring a Connector
 
+There are two ways to add a connector:
+
+### Option A — Conversational setup (recommended)
+
+Say to Dayarc: *"I need to connect Jira"* (or ADO, Linear, Slack, etc.).
+
+Dayarc will run the **dayarc-add-connector** skill, which:
+1. Asks what you need from the tool (signal categories, your username, project filters, custom requirements)
+2. Generates a tailored COLLECT skill and saves it to `~/.copilot/skills/dayarc-connect-{tool}/SKILL.md`
+3. Updates `mcp.json` with the MCP server entry (credential placeholders — you fill in the values)
+4. Updates `config.json` to register the connector
+
+**This is the recommended path.** The generated skill is saved to a location that is not overwritten by Dayarc upgrades, and your connector config is stored in `config.json` so upgrades can re-apply the MCP entry automatically.
+
+### Option B — Manual setup
+
+Follow the steps below to configure a connector by hand.
+
 ### 1. Add the MCP server to `mcp.json`
 
 ```json
@@ -105,6 +123,7 @@ Add an entry to the `connectors` array with three fields:
 | `provides` | ✅ | Signal categories this connector supplies |
 | `config` | optional | Per-connector user identity and query options (see below) |
 | `skill` | optional | Custom COLLECT skill name (see BYO Skill below) |
+| `mcp` | optional | MCP server config snapshot — used by `dayarc-upgrade` to re-apply the entry to `mcp.json` after upgrades |
 
 ```json
 {
@@ -124,10 +143,16 @@ Add an entry to the `connectors` array with three fields:
     {
       "name": "jira",
       "provides": ["flagged_items", "notifications", "assigned_items"],
+      "skill": "dayarc-connect-jira",
       "config": {
         "username": "you@example.com",
         "project_filter": ["PROJ", "INFRA"],
         "notification_reasons": ["mention", "assign"]
+      },
+      "mcp": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-jira"],
+        "env_vars": ["JIRA_URL", "JIRA_EMAIL", "JIRA_API_TOKEN"]
       }
     }
   ]
@@ -166,7 +191,11 @@ This means:
 
 ## BYO Skill
 
-By default, Dayarc queries a connector using the generic natural-language query forms listed above. If your connector works better with a custom COLLECT logic, declare a `skill` in the connector entry:
+By default, Dayarc queries a connector using the generic natural-language query forms listed above. You can supply a custom COLLECT skill for more precise control.
+
+**The easiest way to create a BYO skill is to use `dayarc-add-connector` conversationally** — it generates the skill file for you based on your requirements and installs it automatically.
+
+For manual configuration, declare a `skill` in the connector entry:
 
 ```json
 {
@@ -199,7 +228,9 @@ The skill must return an array of normalized signals (the signal shape above). I
 - You want to filter or enrich signals before they reach synthesis skills
 - You need to join data across multiple MCP calls
 
-**Skill location:** Deliver the skill as a `SKILL.md` in a `skills/` subdirectory of your connector directory (e.g., `connectors/jira/skills/my-jira-collect/SKILL.md`) and instruct users to copy it to their `~/.copilot/skills/` folder.
+**Skill location for generated skills:** `dayarc-add-connector` writes skills to `~/.copilot/skills/dayarc-connect-{tool}/SKILL.md`. This location is upgrade-safe — Dayarc upgrades only overwrite skills sourced from the agent package.
+
+**Skill location for community-distributed skills:** Deliver the skill as a `SKILL.md` in a `skills/` subdirectory of your connector directory (e.g., `connectors/jira/skills/my-jira-collect/SKILL.md`) and instruct users to copy it to `~/.copilot/skills/`.
 
 ---
 
