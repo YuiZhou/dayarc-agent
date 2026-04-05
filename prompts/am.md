@@ -33,9 +33,13 @@ If no replies found, continue to Step 1.
 
 ## Step 1: COLLECT
 
-**Read active connectors:** Read `~/Documents/dayarc/config.json` → `connectors` array. If `connectors` is absent, fall back to built-in defaults: `work-iq` provides M365 signals, `github` provides GitHub signals.
+**Read active connectors:** Read `~/Documents/dayarc/config.json` → `connectors` array. If `connectors` is absent, fall back to built-in defaults: `work-iq` provides M365 signals, `github` provides GitHub signals (using `user.github_usernames` for identity).
 
-For each signal category below, query every connector in `config.json` that lists it under `provides`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
+For each connector, check if it declares a `skill` field:
+- **If `skill` is present:** Invoke that skill by name, passing the connector's `config`, `lookback`, and `since_timestamp`. The skill handles all COLLECT queries for that connector and returns normalized signals. Skip the generic queries below for that connector.
+- **If no `skill`:** Use the generic query forms below, scoping queries using the connector's `config` block (e.g., use `config.usernames` for GitHub, `config.username` for Jira, `config.project_filter` to narrow results).
+
+For each signal category below, query every connector that lists it under `provides` and has no `skill`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
 
 #### flagged_items — user-marked high-priority items
 - **work-iq**: "What flagged emails do I have?" / "What saved Teams messages do I have?"
@@ -43,11 +47,11 @@ For each signal category below, query every connector in `config.json` that list
 
 #### notifications — incoming @mentions, review requests, assignments
 - **work-iq**: "What new emails arrived since yesterday evening?" / "What new Teams @mentions do I have?"
-- **github**: Notifications since last check — `reason:mention`, `reason:review_requested`, `reason:assign`
+- **github**: Notifications since last check — reasons in `config.notification_reasons` (default: `mention`, `review_requested`, `assign`) — scope to `config.usernames`
 - **other connectors**: query for @mentions or new assignments since last brief
 
 #### assigned_items — open tasks assigned to the user
-- **github**: PRs awaiting review (`is:pr review-requested:{username}` for **each** `github_usernames` entry); Issues assigned to the user (`is:issue assignee:{username}` for **each** `github_usernames` entry)
+- **github**: PRs awaiting review (`is:pr review-requested:{username}` for **each** username in `config.usernames`, falling back to top-level `user.github_usernames`); Issues assigned to the user (`is:issue assignee:{username}` for **each** username)
 - **other connectors**: query for open assigned tasks or tickets
 
 #### calendar — today's scheduled events

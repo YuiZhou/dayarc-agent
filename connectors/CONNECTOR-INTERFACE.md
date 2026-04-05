@@ -97,7 +97,14 @@ The `source_breadcrumb` field is **required**. If a connector cannot provide a s
 
 ### 2. Register the connector in `config.json`
 
-Add an entry to the `connectors` array, listing the signal categories it provides:
+Add an entry to the `connectors` array with three fields:
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | ✅ | Must match the key in `mcp.json` |
+| `provides` | ✅ | Signal categories this connector supplies |
+| `config` | optional | Per-connector user identity and query options (see below) |
+| `skill` | optional | Custom COLLECT skill name (see BYO Skill below) |
 
 ```json
 {
@@ -108,30 +115,91 @@ Add an entry to the `connectors` array, listing the signal categories it provide
     },
     {
       "name": "github",
-      "provides": ["sent_activity", "notifications", "assigned_items"]
+      "provides": ["sent_activity", "notifications", "assigned_items"],
+      "config": {
+        "usernames": ["your-handle", "your-emu-handle"],
+        "notification_reasons": ["mention", "review_requested", "assign"]
+      }
     },
     {
       "name": "jira",
-      "provides": ["flagged_items", "notifications", "assigned_items"]
+      "provides": ["flagged_items", "notifications", "assigned_items"],
+      "config": {
+        "username": "you@example.com",
+        "project_filter": ["PROJ", "INFRA"],
+        "notification_reasons": ["mention", "assign"]
+      }
     }
   ]
 }
 ```
 
-The `name` must match the key in `mcp.json`.
+If `connectors` is absent from `config.json`, Dayarc falls back to the built-in defaults: `work-iq` for M365 signals, `github` for GitHub signals (using `user.github_usernames` for identity scoping).
 
-If `connectors` is absent from `config.json`, Dayarc falls back to the built-in defaults: `work-iq` for M365 signals, `github` for GitHub signals.
+#### Standard `config` fields
+
+These field names are conventional — connectors should use them when applicable so users have a consistent configuration experience:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `usernames` | string[] | User handles/IDs on this platform (used to scope queries to the user's own activity) |
+| `username` | string | Single user handle or email, for platforms with one identity |
+| `project_filter` | string[] | Restrict signals to these projects, repos, boards, or spaces |
+| `notification_reasons` | string[] | Which notification types to fetch (connector-specific values) |
+| `issue_types` | string[] | Filter assigned/flagged items to these issue or ticket types |
+| `since_field` | string | Name of the timestamp field to use for time-windowed queries (default: `updated`) |
+
+Connectors may define additional tool-specific fields beyond these. Document them in your connector's `README.md`.
 
 ---
 
 ## How the COLLECT Step Uses Connectors
 
-At COLLECT time, the plan prompt reads `config.json → connectors`, then for each required signal category, queries every connector that lists it under `provides`. Synthesis skills (`classify_activity`, `infer_priorities`, `filter_signals`) receive the merged signal set and are unaware of which connector produced each signal.
+At COLLECT time, the plan prompt reads `config.json → connectors`, then for each required signal category, queries every connector that lists it under `provides`. The connector's `config` block is passed to scope queries to the right user and context. Synthesis skills (`classify_activity`, `infer_priorities`, `filter_signals`) receive the merged signal set and are unaware of which connector produced each signal.
 
 This means:
 - Core skills (`memory`, `classify_activity`, `infer_priorities`, etc.) are unchanged when connectors change.
 - Adding a connector only affects the COLLECT step of `pm.md` and `am.md`.
 - Removing a connector (e.g., if the user doesn't use M365) degrades gracefully — the brief notes the missing category.
+
+---
+
+## BYO Skill
+
+By default, Dayarc queries a connector using the generic natural-language query forms listed above. If your connector works better with a custom COLLECT logic, declare a `skill` in the connector entry:
+
+```json
+{
+  "name": "jira",
+  "provides": ["flagged_items", "notifications", "assigned_items"],
+  "skill": "my-jira-collect",
+  "config": {
+    "username": "you@example.com",
+    "project_filter": ["PROJ", "INFRA"]
+  }
+}
+```
+
+When a `skill` is present, the COLLECT step **invokes that skill by name instead of using generic queries** for this connector. The skill receives:
+
+```json
+{
+  "connector": "jira",
+  "provides": ["flagged_items", "notifications", "assigned_items"],
+  "config": { "username": "you@example.com", "project_filter": ["PROJ", "INFRA"] },
+  "lookback": "today | 7 days",
+  "since_timestamp": "ISO 8601"
+}
+```
+
+The skill must return an array of normalized signals (the signal shape above). It may use any MCP tool available to the agent, including the connector's own MCP server.
+
+**When to use a BYO skill:**
+- Your connector's MCP server uses structured queries (not NL) and needs precise parameterization
+- You want to filter or enrich signals before they reach synthesis skills
+- You need to join data across multiple MCP calls
+
+**Skill location:** Deliver the skill as a `SKILL.md` in a `skills/` subdirectory of your connector directory (e.g., `connectors/jira/skills/my-jira-collect/SKILL.md`) and instruct users to copy it to their `~/.copilot/skills/` folder.
 
 ---
 
@@ -145,7 +213,10 @@ To build a community connector:
    - What the connector provides (signal categories)
    - How to install and configure the MCP server
    - What credentials or auth it needs
-   - Sample `mcp.json` and `config.json` snippets
+   - Sample `mcp.json` and `config.json` snippets (including the `config` block with all supported fields)
+   - If using a BYO skill, instructions for installing it
 4. Submit a PR to add your connector directory under `connectors/`.
 
 **Naming convention:** `connectors/{tool-name}/README.md`
+
+If using a BYO skill, also include: `connectors/{tool-name}/skills/{skill-name}/SKILL.md`

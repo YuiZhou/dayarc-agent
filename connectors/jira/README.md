@@ -66,7 +66,7 @@ Open `~/.dayarc-agent/mcp.json` (git clone install) or the plugin's `mcp.json` a
 
 ### Step 3 — Register in `config.json`
 
-Open `~/Documents/dayarc/config.json` and add `jira` to the `connectors` array:
+Open `~/Documents/dayarc/config.json` and add `jira` to the `connectors` array with a `config` block scoped to your identity and projects:
 
 ```json
 {
@@ -77,15 +77,33 @@ Open `~/Documents/dayarc/config.json` and add `jira` to the `connectors` array:
     },
     {
       "name": "github",
-      "provides": ["sent_activity", "notifications", "assigned_items"]
+      "provides": ["sent_activity", "notifications", "assigned_items"],
+      "config": {
+        "usernames": ["your-github-handle"]
+      }
     },
     {
       "name": "jira",
-      "provides": ["flagged_items", "notifications", "assigned_items"]
+      "provides": ["flagged_items", "notifications", "assigned_items"],
+      "config": {
+        "username": "you@example.com",
+        "project_filter": ["PROJ", "INFRA"],
+        "notification_reasons": ["mention", "assign"],
+        "issue_types": ["Bug", "Story", "Task"]
+      }
     }
   ]
 }
 ```
+
+#### Jira `config` fields
+
+| Field | Default | Description |
+|---|---|---|
+| `username` | — | Your Jira email or username. Used to scope @mention queries to you. **Required** for `notifications`. |
+| `project_filter` | all projects | Restrict signals to these Jira project keys (e.g., `["PROJ", "INFRA"]`). Omit to query all projects you have access to. |
+| `notification_reasons` | `["mention", "assign"]` | Which notification types to fetch. Options: `"mention"`, `"assign"`, `"comment"`, `"status_change"`. |
+| `issue_types` | all types | Restrict `assigned_items` and `flagged_items` to these Jira issue types (e.g., `["Bug", "Story", "Task"]`). |
 
 If you don't use M365, remove the `work-iq` entry and only keep the connectors you have.
 
@@ -120,3 +138,54 @@ During COLLECT, Dayarc will ask the Jira connector:
 ## Alternatives
 
 If `@modelcontextprotocol/server-jira` doesn't work for your setup, any MCP server that can answer the query contract described in [CONNECTOR-INTERFACE.md](../CONNECTOR-INTERFACE.md) will work — including self-hosted or custom implementations.
+
+---
+
+## Advanced: BYO Skill
+
+If you need more control over how Jira signals are collected (e.g., custom JQL queries, multi-step API calls, or enrichment with sprint data), you can declare a custom COLLECT skill instead of using the default generic queries.
+
+### Step 1 — Add `skill` to your connector entry
+
+```json
+{
+  "name": "jira",
+  "provides": ["flagged_items", "notifications", "assigned_items"],
+  "skill": "jira-collect",
+  "config": {
+    "username": "you@example.com",
+    "project_filter": ["PROJ", "INFRA"],
+    "notification_reasons": ["mention", "assign"],
+    "issue_types": ["Bug", "Story", "Task"]
+  }
+}
+```
+
+### Step 2 — Install the skill
+
+Copy the skill definition to your skills directory:
+
+```powershell
+# Git clone install
+Copy-Item -Recurse connectors/jira/skills/jira-collect ~/.copilot/skills/
+
+# Plugin install — copy to plugin skills folder (path varies by install)
+```
+
+The skill file is at `connectors/jira/skills/jira-collect/SKILL.md` in this repo (not yet published — contribute one!).
+
+### What the skill receives
+
+```json
+{
+  "connector": "jira",
+  "provides": ["flagged_items", "notifications", "assigned_items"],
+  "config": { "username": "you@example.com", "project_filter": ["PROJ", "INFRA"], "notification_reasons": ["mention", "assign"], "issue_types": ["Bug", "Story", "Task"] },
+  "lookback": "today",
+  "since_timestamp": "2026-04-04T20:00:00Z"
+}
+```
+
+### What the skill must return
+
+An array of normalized signals matching the signal shape in [CONNECTOR-INTERFACE.md](../CONNECTOR-INTERFACE.md).

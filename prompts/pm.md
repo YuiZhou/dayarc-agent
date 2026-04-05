@@ -35,13 +35,17 @@ If no replies found, continue to Step 1.
 
 **Bootstrap check:** Use **dayarc-memory** to list files in `daily/`. If no `daily-profile-*.json` files exist, this is a **bootstrap run** — set `LOOKBACK = 7 days` and use `"last 7 days"` as the query window for all connector queries below. Otherwise set `LOOKBACK = today`.
 
-**Read active connectors:** Read `~/Documents/dayarc/config.json` → `connectors` array. If `connectors` is absent, fall back to built-in defaults: `work-iq` provides M365 signals, `github` provides GitHub signals.
+**Read active connectors:** Read `~/Documents/dayarc/config.json` → `connectors` array. If `connectors` is absent, fall back to built-in defaults: `work-iq` provides M365 signals, `github` provides GitHub signals (using `user.github_usernames` for identity).
 
-For each signal category below, query every connector in `config.json` that lists it under `provides`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
+For each connector, check if it declares a `skill` field:
+- **If `skill` is present:** Invoke that skill by name, passing the connector's `config`, `lookback`, and `since_timestamp`. The skill handles all COLLECT queries for that connector and returns normalized signals. Skip the generic queries below for that connector.
+- **If no `skill`:** Use the generic query forms below, scoping queries using the connector's `config` block (e.g., use `config.usernames` for GitHub, `config.username` for Jira, `config.project_filter` to narrow results).
+
+For each signal category below, query every connector that lists it under `provides` and has no `skill`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
 
 #### sent_activity — what the user actively did
 - **work-iq**: "What emails did I send {LOOKBACK}?" / "What Teams messages did I send {LOOKBACK}?" / "What documents did I edit {LOOKBACK}?"
-- **github**: Commits authored {LOOKBACK}; PRs opened or reviewed {LOOKBACK}; Issues commented on or closed {LOOKBACK}; Reviews submitted {LOOKBACK}
+- **github**: Commits authored {LOOKBACK}; PRs opened or reviewed {LOOKBACK}; Issues commented on or closed {LOOKBACK}; Reviews submitted {LOOKBACK} — scope to `config.usernames` (falls back to top-level `user.github_usernames`)
 - **other connectors**: query for outgoing/authored activity over the LOOKBACK window
 
 #### flagged_items — user-marked high-priority items
@@ -57,7 +61,7 @@ For each signal category below, query every connector in `config.json` that list
 - **other connectors**: query for recently modified files or documents
 
 #### notifications (PM supplemental — high-priority signals the user may have missed)
-- **github**: search notifications for `reason:mention`, `reason:review_requested`, `reason:assign` since the start of the LOOKBACK window
+- **github**: search notifications for reasons listed in `config.notification_reasons` (default: `mention`, `review_requested`, `assign`) since the start of the LOOKBACK window — scope to `config.usernames`
 - **other connectors**: query for @mentions or new assignments since the start of the LOOKBACK window
 
 **Note:** For non-active GitHub accounts (e.g. EMU/corp), notification emails are captured by Work IQ via Outlook. Cross-reference both sources.
