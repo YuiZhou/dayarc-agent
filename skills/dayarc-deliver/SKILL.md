@@ -38,4 +38,17 @@ Render the brief as formatted text in the terminal. If `locale` is not `en`, tra
 ## Instructions
 1. Verify Outlook is running before attempting send (check process).
 2. If Outlook not available, display in terminal and note that email was not sent.
-3. Clean up temp files after sending.
+3. **Idempotency check — run before every scheduled send:**
+   Query Outlook Sent Items for a message with today's brief subject (e.g. `🌙 Evening Wrap-up — {date}`). Use the Outlook COM object:
+   ```powershell
+   $ol = New-Object -ComObject Outlook.Application
+   $sent = $ol.Session.GetDefaultFolder(5)  # 5 = olFolderSentMail
+   $subject = "{subject}"
+   $alreadySent = $sent.Items | Where-Object { $_.Subject -eq $subject } | Select-Object -First 1
+   if ($alreadySent) {
+       Write-Host "already delivered — skipping send (ItemID: $($alreadySent.EntryID))"
+       exit 0
+   }
+   ```
+   If a matching item is found, log `already delivered` and skip sending. Do not send a second copy.
+4. Clean up temp files after sending.
