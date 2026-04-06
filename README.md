@@ -48,6 +48,7 @@ All briefs include source breadcrumbs (links, thread subjects, channel names) fo
 - [design.md](design.md) — Technical architecture
 - [spec.md](spec.md) — Product specification
 - [memory-schemas.md](memory-schemas.md) — Memory file schemas
+- [Connector Interface](docs/connector-interface/README.md) — How to add custom signal sources (ADO, Jira, Linear, Slack, …). See [Jira Connector Example](docs/connector-interface/jira.md)
 
 ## Architecture
 

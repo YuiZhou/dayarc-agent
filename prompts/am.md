@@ -37,9 +37,11 @@ If no replies found, continue to Step 1.
 
 For each connector, check if it declares a `skill` field:
 - **If `skill` is present:** Invoke that skill by name, passing the connector's `config`, `lookback`, and `since_timestamp`. The skill handles all COLLECT queries for that connector and returns normalized signals. Skip the generic queries below for that connector.
-- **If no `skill`:** Use the generic query forms below, scoping queries using the connector's `config` block (e.g., use `config.usernames` for GitHub, `config.username` for Jira, `config.project_filter` to narrow results).
+- **If no `skill`:** Use the generic query forms below, applying the connector's `config` block for identity and filtering.
 
-For each signal category below, query every connector that lists it under `provides` and has no `skill`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
+**GitHub username resolution:** Resolve `$gh_usernames` = `github_connector.config.usernames ?? user.github_usernames`. Use this list for all GitHub queries below.
+
+For each signal category below, query every connector that lists it under `provides` and has no `skill`. See `docs/connector-interface/README.md` for the full query contract; built-in connector queries are listed here for reference.
 
 #### flagged_items — user-marked high-priority items
 - **work-iq**: "What flagged emails do I have?" / "What saved Teams messages do I have?"
@@ -47,11 +49,11 @@ For each signal category below, query every connector that lists it under `provi
 
 #### notifications — incoming @mentions, review requests, assignments
 - **work-iq**: "What new emails arrived since yesterday evening?" / "What new Teams @mentions do I have?"
-- **github**: Notifications since last check — reasons in `config.notification_reasons` (default: `mention`, `review_requested`, `assign`) — scope to `config.usernames`
+- **github**: For each username in `$gh_usernames`: notifications with reasons `{github_connector.config.notification_reasons ?? ["mention","review_requested","assign"]}` since last brief for `{username}`
 - **other connectors**: query for @mentions or new assignments since last brief
 
 #### assigned_items — open tasks assigned to the user
-- **github**: PRs awaiting review (`is:pr review-requested:{username}` for **each** username in `config.usernames`, falling back to top-level `user.github_usernames`); Issues assigned to the user (`is:issue assignee:{username}` for **each** username)
+- **github**: For each username in `$gh_usernames`: `is:pr review-requested:{username}` (PRs awaiting review); `is:issue assignee:{username}` (open assigned issues)
 - **other connectors**: query for open assigned tasks or tickets
 
 #### calendar — today's scheduled events

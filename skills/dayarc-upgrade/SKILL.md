@@ -143,7 +143,29 @@ Then run **After Update** steps as normal. Report:
 
 1. Read `CHANGELOG.md` and summarize what changed since the previous HEAD.
 2. **Git clone only:** Copy updated files to `~/.copilot/` (agent profile + skills). Skip for plugin installs — the plugin system handles this.
-3. **Re-apply user connector MCP entries:** Read `~/Documents/dayarc/config.json → connectors`. For each connector entry that has an `mcp` field, check if the corresponding key exists in the live `mcp.json`. If not (i.e., the upgrade overwrote it), re-add the entry. The `mcp.env_vars` field lists credential variable names — add them with `"REPLACE_ME"` as the value if they're missing. Tell the user: "Restored MCP config for connector(s): {names}. Your credentials are still in mcp.json — no action needed." Skip this step if no connector has an `mcp` field.
+3. **Re-apply user connector MCP entries:** Read `~/Documents/dayarc/config.json → connectors`. For each connector entry that has an `mcp` field, apply the following logic:
+
+   ```
+   Read current mcp.json into $mcpConfig
+   For each $connector in config.json → connectors where $connector.mcp exists:
+     $name = $connector.name
+     If $mcpConfig.mcpServers does NOT have key $name:
+       Build new entry:
+         command = $connector.mcp.command
+         args    = $connector.mcp.args
+         env     = { for each var in $connector.mcp.env_vars: $var → "REPLACE_ME" }
+       Add $mcpConfig.mcpServers[$name] = new entry
+       Mark $name as restored
+   Write updated mcp.json back
+   ```
+
+   If any connectors were restored, tell the user:
+   > ✅ Restored MCP config for connector(s): {restored names}. Your actual credentials were not stored here — check `mcp.json` and replace any `REPLACE_ME` values if needed.
+
+   If `env_vars` is empty or absent for a connector, add the entry with no `env` block.
+
+   Skip this step entirely if no connector in `config.json` has an `mcp` field.
+
 4. **Re-register scheduler if this machine owns one:** Read `~/Documents/dayarc/config.json`. The `scheduler` field is an array of `{ machine, am_time, pm_time }` entries. Find the entry where `machine` matches `$env:COMPUTERNAME`. If found, find the `scheduler.ps1` path (same discovery logic as the scheduler script itself) and re-register:
    ```powershell
    # Find scheduler.ps1 (plugin or clone)
@@ -161,7 +183,7 @@ Then run **After Update** steps as normal. Report:
    If no entry matches this machine, skip this step.
 
    **Note:** The `scheduler.ps1` script auto-detects the correct agent name at runtime (`dayarc:dayarc` for plugin, `dayarc` for user-level). Re-registering the scheduler after a migration from user-level to plugin (or vice versa) is sufficient — no manual agent name changes needed.
-4. Report the new version (latest tag or commit short hash).
+5. Report the new version (latest tag or commit short hash).
 
 ### Migration: User-Level → Plugin
 

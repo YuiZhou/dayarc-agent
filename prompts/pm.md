@@ -39,13 +39,15 @@ If no replies found, continue to Step 1.
 
 For each connector, check if it declares a `skill` field:
 - **If `skill` is present:** Invoke that skill by name, passing the connector's `config`, `lookback`, and `since_timestamp`. The skill handles all COLLECT queries for that connector and returns normalized signals. Skip the generic queries below for that connector.
-- **If no `skill`:** Use the generic query forms below, scoping queries using the connector's `config` block (e.g., use `config.usernames` for GitHub, `config.username` for Jira, `config.project_filter` to narrow results).
+- **If no `skill`:** Use the generic query forms below, applying the connector's `config` block for identity and filtering.
 
-For each signal category below, query every connector that lists it under `provides` and has no `skill`. See `connectors/CONNECTOR-INTERFACE.md` for the full query contract; built-in connector queries are listed here for reference.
+**GitHub username resolution:** Resolve `$gh_usernames` = `github_connector.config.usernames ?? user.github_usernames`. Use this list for all GitHub queries below.
+
+For each signal category below, query every connector that lists it under `provides` and has no `skill`. See `docs/connector-interface/README.md` for the full query contract; built-in connector queries are listed here for reference.
 
 #### sent_activity — what the user actively did
 - **work-iq**: "What emails did I send {LOOKBACK}?" / "What Teams messages did I send {LOOKBACK}?" / "What documents did I edit {LOOKBACK}?"
-- **github**: Commits authored {LOOKBACK}; PRs opened or reviewed {LOOKBACK}; Issues commented on or closed {LOOKBACK}; Reviews submitted {LOOKBACK} — scope to `config.usernames` (falls back to top-level `user.github_usernames`)
+- **github**: For each username in `$gh_usernames`: commits authored {LOOKBACK} by `{username}`; PRs opened or reviewed {LOOKBACK} by `{username}`; issues commented on or closed {LOOKBACK} by `{username}`; reviews submitted {LOOKBACK} by `{username}`
 - **other connectors**: query for outgoing/authored activity over the LOOKBACK window
 
 #### flagged_items — user-marked high-priority items
@@ -61,7 +63,7 @@ For each signal category below, query every connector that lists it under `provi
 - **other connectors**: query for recently modified files or documents
 
 #### notifications (PM supplemental — high-priority signals the user may have missed)
-- **github**: search notifications for reasons listed in `config.notification_reasons` (default: `mention`, `review_requested`, `assign`) since the start of the LOOKBACK window — scope to `config.usernames`
+- **github**: For each username in `$gh_usernames`: search notifications with reasons `{github_connector.config.notification_reasons ?? ["mention","review_requested","assign"]}` since the start of the LOOKBACK window for `{username}`
 - **other connectors**: query for @mentions or new assignments since the start of the LOOKBACK window
 
 **Note:** For non-active GitHub accounts (e.g. EMU/corp), notification emails are captured by Work IQ via Outlook. Cross-reference both sources.

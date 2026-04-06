@@ -33,7 +33,9 @@ Jira does **not** provide `sent_activity`, `calendar`, or `recent_docs`. Those s
 
 ### Step 1 — Install the MCP server
 
-This connector uses the [`@modelcontextprotocol/server-jira`](https://github.com/modelcontextprotocol/servers) community MCP server (or a compatible alternative).
+This connector uses the `@modelcontextprotocol/server-jira` community MCP server (or a compatible alternative).
+
+> **Note:** `@modelcontextprotocol/server-jira` is used here as an example package name. Check [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) or your Jira tool's community for the actual published package. If no official package exists yet, any MCP server that satisfies the query contract in [README.md](./README.md) will work.
 
 ```powershell
 # Verify it's available
@@ -137,7 +139,7 @@ During COLLECT, Dayarc will ask the Jira connector:
 
 ## Alternatives
 
-If `@modelcontextprotocol/server-jira` doesn't work for your setup, any MCP server that can answer the query contract described in [CONNECTOR-INTERFACE.md](../CONNECTOR-INTERFACE.md) will work — including self-hosted or custom implementations.
+If `@modelcontextprotocol/server-jira` doesn't work for your setup, any MCP server that can answer the query contract described in [README.md](./README.md) will work — including self-hosted or custom implementations.
 
 ---
 

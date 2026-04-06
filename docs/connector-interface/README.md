@@ -65,19 +65,19 @@ For each signal category it provides, a connector **must** be able to answer nat
 
 ## Signal Shape
 
-Regardless of source, all collected signals are normalized into this shape before being passed to synthesis skills:
+The signal shape is a **conceptual contract** — it defines what information each signal should carry. The agent reasons about collected signals holistically and does not produce literal JSON arrays between pipeline stages.
 
-```json
-{
-  "description": "One-sentence description of the signal",
-  "source_breadcrumb": "link, ticket ID, thread subject, or channel name",
-  "timestamp": "ISO 8601 datetime",
-  "category": "sent_activity | flagged_items | saved_items | calendar | notifications | assigned_items | recent_docs",
-  "connector": "name of the MCP server that provided this signal"
-}
-```
+When collecting signals, ensure each result has:
 
-The `source_breadcrumb` field is **required**. If a connector cannot provide a stable link, it must provide the best available identifier (ticket number, thread subject, channel name). Never leave it blank — use `"source unavailable"` as a last resort.
+| Field | Required | Description |
+|---|---|---|
+| `description` | ✅ | One sentence describing what the signal is |
+| `source_breadcrumb` | ✅ | Link, ticket ID, thread subject, or channel name. Never blank — use `"source unavailable"` as last resort |
+| `timestamp` | ✅ | ISO 8601 datetime of last activity |
+| `category` | ✅ | One of the signal category names above |
+| `connector` | ✅ | Name of the MCP server that provided this signal |
+
+When passing signals to synthesis skills (`classify_activity`, `infer_priorities`, `filter_signals`), present them with these fields so skills can reason about source and relevance correctly.
 
 ---
 
@@ -95,7 +95,7 @@ Dayarc will run the **dayarc-add-connector** skill, which:
 3. Updates `mcp.json` with the MCP server entry (credential placeholders — you fill in the values)
 4. Updates `config.json` to register the connector
 
-**This is the recommended path.** The generated skill is saved to a location that is not overwritten by Dayarc upgrades, and your connector config is stored in `config.json` so upgrades can re-apply the MCP entry automatically.
+**This is the recommended path.** The generated skill is saved to `~/.copilot/skills/` — Copilot CLI auto-discovers all skills in this directory on startup, so the new skill becomes immediately available without any additional registration step. This location is not overwritten by Dayarc upgrades, and your connector config is stored in `config.json` so upgrades can re-apply the MCP entry automatically.
 
 ### Option B — Manual setup
 
@@ -228,9 +228,9 @@ The skill must return an array of normalized signals (the signal shape above). I
 - You want to filter or enrich signals before they reach synthesis skills
 - You need to join data across multiple MCP calls
 
-**Skill location for generated skills:** `dayarc-add-connector` writes skills to `~/.copilot/skills/dayarc-connect-{tool}/SKILL.md`. This location is upgrade-safe — Dayarc upgrades only overwrite skills sourced from the agent package.
+**Skill location for generated skills:** `dayarc-add-connector` writes skills to `~/.copilot/skills/dayarc-connect-{tool}/SKILL.md`. Copilot CLI auto-discovers all skills in `~/.copilot/skills/` on startup. This location is upgrade-safe — Dayarc upgrades only overwrite skills whose names match the agent package (e.g., `dayarc-*` built-in skills). A generated skill named `dayarc-connect-jira` has a distinct name and will not be overwritten.
 
-**Skill location for community-distributed skills:** Deliver the skill as a `SKILL.md` in a `skills/` subdirectory of your connector directory (e.g., `connectors/jira/skills/my-jira-collect/SKILL.md`) and instruct users to copy it to `~/.copilot/skills/`.
+**Skill location for community-distributed skills:** Include a `SKILL.md` in your connector's `docs/connector-interface/` contribution (e.g., as an attachment or separate file) and instruct users to place it at `~/.copilot/skills/{skill-name}/SKILL.md`.
 
 ---
 
@@ -240,14 +240,12 @@ To build a community connector:
 
 1. Implement an MCP server that handles the query forms listed above for your tool.
 2. Publish it (npm, PyPI, Docker, etc.) so users can install it.
-3. Write a `README.md` following the pattern in [`connectors/jira/README.md`](./jira/README.md):
+3. Write a doc following the pattern in [`jira.md`](./jira.md):
    - What the connector provides (signal categories)
    - How to install and configure the MCP server
    - What credentials or auth it needs
    - Sample `mcp.json` and `config.json` snippets (including the `config` block with all supported fields)
-   - If using a BYO skill, instructions for installing it
-4. Submit a PR to add your connector directory under `connectors/`.
+   - If using a BYO skill, the skill file content and installation instructions
+4. Submit a PR to add your doc to `docs/connector-interface/`.
 
-**Naming convention:** `connectors/{tool-name}/README.md`
-
-If using a BYO skill, also include: `connectors/{tool-name}/skills/{skill-name}/SKILL.md`
+**Naming convention:** `docs/connector-interface/{tool-name}.md`

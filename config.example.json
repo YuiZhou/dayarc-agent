@@ -19,7 +19,8 @@
   "connectors": [
     {
       "name": "work-iq",
-      "provides": ["sent_activity", "flagged_items", "saved_items", "calendar", "recent_docs"]
+      "provides": ["sent_activity", "flagged_items", "saved_items", "calendar", "recent_docs"],
+      "config": {}
     },
     {
       "name": "github",

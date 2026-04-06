@@ -3,17 +3,18 @@
 ## [Unreleased] — 2026-04-05
 
 ### Added
-- `connectors/CONNECTOR-INTERFACE.md` — Signal source interface spec: defines signal categories, query contract, signal shape, and how to declare/register a connector; documents `config` fields, `skill` (BYO skill), and `mcp` (upgrade-preservation) fields; documents conversational setup via `dayarc-add-connector`
-- `connectors/jira/README.md` — Community Jira connector example (provides `flagged_items`, `notifications`, `assigned_items`); includes `config` field table and "Advanced: BYO Skill" section
-- `skills/dayarc-add-connector` — Conversational connector setup skill: collects requirements, generates a custom COLLECT skill, writes it to `~/.copilot/skills/dayarc-connect-{tool}/` (upgrade-safe), updates `mcp.json` and `config.json`
-- `config.example.json` — Added `connectors` array with `config` blocks; connector entries support `skill`, `config`, and `mcp` fields
+- `docs/connector-interface/README.md` — Signal source interface spec: signal categories, query contract, signal shape (conceptual contract), connector declaration fields (`provides`, `config`, `skill`, `mcp`), conversational setup via `dayarc-add-connector`, skill auto-discovery in `~/.copilot/skills/`
+- `docs/connector-interface/jira.md` — Jira connector example (provides `flagged_items`, `notifications`, `assigned_items`); includes `config` field table, "Advanced: BYO Skill" section, and note that the package name is an example
+- `skills/dayarc-add-connector` — Conversational connector setup skill: collects requirements, generates a custom COLLECT skill (with template syntax expanded into concrete markdown), writes it to `~/.copilot/skills/dayarc-connect-{tool}/` (upgrade-safe, auto-discovered by Copilot CLI), updates `mcp.json` and `config.json`
+- `config.example.json` — Added `connectors` array with `config` blocks on both built-in connectors (including empty `config: {}` for `work-iq` to show the pattern)
+- `README.md` — Added connector docs links to Documentation section
 
 ### Changed
-- `prompts/pm.md` — COLLECT step refactored to be connector-agnostic: reads active connectors from `config.json → connectors`, dispatches to BYO skill when declared, queries each connector using its `config` block for identity/filter scoping; falls back to Work IQ + GitHub defaults if `connectors` is absent
-- `prompts/am.md` — Same connector-agnostic refactor for AM COLLECT step
-- `design.md` — Architecture section updated with pluggable connector model (§1a), including conversational setup flow and upgrade-safety design
-- `skills/dayarc-upgrade` — After Update step now re-applies user connector MCP entries from `config.json → connectors[].mcp` back into `mcp.json` after a pull (upgrade-safe connector persistence)
-- `agents/dayarc.agent.md` — Added `dayarc-add-connector` trigger rule
+- `prompts/pm.md` — COLLECT step: connector-agnostic with explicit `$gh_usernames` resolution (`config.usernames ?? user.github_usernames`) and username substituted directly into each query; dispatches to BYO skill when declared; doc path updated to `docs/connector-interface/README.md`
+- `prompts/am.md` — Same refactor: explicit `$gh_usernames` resolution and username-substituted queries
+- `design.md` — Architecture diagram updated (`docs/` replaces `connectors/`); §1a removed (details belong in `docs/connector-interface/README.md`); one-line pointer added
+- `skills/dayarc-upgrade` — After Update step 3: explicit logic to iterate `config.json → connectors[].mcp` and re-add missing MCP server entries to `mcp.json`; step numbering fixed (was duplicate step 4)
+- `skills/dayarc-add-connector` — Phase 2 note added: expand template syntax into concrete markdown, never leave `{FOR EACH}` / `{IF}` directives in output
 
 ## [Unreleased] — 2026-03-17
 

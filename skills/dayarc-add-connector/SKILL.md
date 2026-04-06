@@ -85,6 +85,8 @@ For each credential: do NOT record the actual values here — just record the **
 
 Generate a `SKILL.md` file content using the template below. Fill in all `{placeholders}` from the information collected in Phase 1.
 
+> **Important:** The template below uses `{FOR EACH ...}` / `{END FOR EACH}` / `{IF ...}` / `{END IF}` as generation directives. **Expand these into concrete markdown sections for this specific connector.** Do not write template syntax into the output file — produce plain markdown that a human (or the agent) can read and execute directly.
+
 ```
 ---
 name: Collect {Tool} Signals
