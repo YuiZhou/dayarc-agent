@@ -98,9 +98,14 @@ Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the bui
 1. Write `daily/daily-profile-{today}.json` — the updated daily profile from learn_user_profile. If this is a bootstrap run, set `"bootstrap": true` in the profile so the AM brief can label signals as 'initial calibration' rather than drift alerts.
 2. Write `runs/{today}-pm.json` — run tag with `{ "timestamp": "{ISO datetime}", "type": "pm" }`.
 
+> ⚠️ **Step 4 writes memory ONLY. Do NOT render or send email in this step.**
+> Email delivery happens exclusively in Step 5. Never combine Step 4 and Step 5 into a single shell block.
+
 **MUST complete Step 4 before Step 5.**
 
 ## Step 5: DELIVER
+
+> ⚠️ **This is the ONLY step that sends email. Never send email in any other step.**
 
 Via **dayarc-deliver**:
 - Render `pm.hbs` template with brief data.
