@@ -25,7 +25,7 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 1. Use **parse_reply** skill to extract corrections.
 2. If corrections found, read the latest daily profile via **dayarc-memory**.
 3. Apply corrections to the profile.
-4. Write updated profile back via **dayarc-memory**.
+4. Write updated profile back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
 5. Set a flag: `replies_applied = true` with a summary of what changed.
 
 **0d. Acknowledgment.** If `replies_applied`, include at the top of the brief output:
@@ -107,7 +107,7 @@ Via **dayarc-deliver**:
 - Render `am.hbs` template with brief data.
 - Subject: `☀️ Morning Brief — {today's date}`
 - Send email to self via Outlook COM.
-- Write `runs/{today}-am.json` run tag.
+- Write `runs/{today}-am.json` run tag via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
 
 **Note:** AM does NOT write a daily profile — only PM writes profiles.
 

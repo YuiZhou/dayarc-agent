@@ -25,7 +25,7 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 1. Use **parse_reply** skill to extract corrections.
 2. If corrections found, read the latest daily profile via **dayarc-memory**.
 3. Apply corrections (mark_done, remove, add_priority, correct) to the profile.
-4. Write updated profile back via **dayarc-memory**.
+4. Write updated profile back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
 5. Set a flag: `replies_applied = true` with a summary of what changed.
 
 **0d. Acknowledgment.** If `replies_applied`, include at the top of the brief output:
@@ -94,7 +94,7 @@ Produce brief sections:
 
 ## Step 4: WRITE
 
-Via **dayarc-memory**:
+Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool):
 1. Write `daily/daily-profile-{today}.json` — the updated daily profile from learn_user_profile. If this is a bootstrap run, set `"bootstrap": true` in the profile so the AM brief can label signals as 'initial calibration' rather than drift alerts.
 2. Write `runs/{today}-pm.json` — run tag with `{ "timestamp": "{ISO datetime}", "type": "pm" }`.
 

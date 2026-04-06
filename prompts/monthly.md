@@ -37,7 +37,7 @@ Produce brief sections:
 
 ## Step 3: WRITE (Memory Lifecycle)
 
-Via **dayarc-memory**, execute in this exact order:
+Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool), execute in this exact order:
 1. If `monthly-summary.json` exists, it is the previous month — absorb its unresolved items into the new summary.
 2. Overwrite `monthly-summary.json` with this month's summary.
 3. Delete all files in `weekly-archive/` older than current month (keep current month's archives).
