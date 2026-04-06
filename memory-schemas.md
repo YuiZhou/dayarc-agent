@@ -1,5 +1,17 @@
 # Memory Schemas Reference
 
+> ⚠️ **IMPORTANT — File Write Method:**
+> Always write memory files using **PowerShell shell commands** (`Set-Content` or `Out-File`).
+> **Never use the Copilot CLI built-in `create` tool.** The `create` tool writes to the session sandbox (`~/.copilot/session-state/{id}/files/`) and files will **not** persist to `~/Documents/dayarc/memory/` — they are lost when the session ends.
+>
+> **Correct (shell):**
+> ```powershell
+> $memDir = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "dayarc\memory"
+> $json | Set-Content (Join-Path $memDir "daily\daily-profile-2026-04-01.json") -Encoding UTF8
+> ```
+>
+> **Wrong (create tool):** Do not call `create daily-profile-2026-04-01.json` — this goes to the session sandbox, not the filesystem.
+
 **How to Use:** Before writing any memory file, read this document. Validate output matches the schema below.
 
 ---

@@ -22,6 +22,20 @@ To list files: list the contents of a subdirectory.
 ### Write
 Write JSON to the memory directory. ALWAYS read memory-schemas.md first and validate the structure.
 
+> ⚠️ **IMPORTANT — Always use PowerShell shell commands for all file writes. Never use the Copilot CLI built-in `create` tool.**
+> The `create` tool writes to the session sandbox, not to `~/Documents/dayarc/memory/`. Files written with it are lost when the session ends.
+>
+> Use this pattern for every write:
+> ```powershell
+> $memDir = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "dayarc\memory"
+> $json | Set-Content (Join-Path $memDir "{relative-path-to-file}") -Encoding UTF8
+> ```
+> For subdirectories (e.g., `daily/`, `runs/`, `weekly-archive/`), ensure the directory exists first:
+> ```powershell
+> $dir = Join-Path $memDir "daily"
+> if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force }
+> ```
+
 ### Memory Lifecycle (for scheduled plans)
 - PM: write daily-profile-{today}.json
 - Weekly: absorb prev → archive to weekly-archive/ → rotate current→prev → write new → purge dailies

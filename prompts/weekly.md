@@ -38,7 +38,7 @@ Produce brief sections:
 
 ## Step 3: WRITE (Memory Lifecycle)
 
-Via **dayarc-memory**, execute in this exact order:
+Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool), execute in this exact order:
 1. If `weekly-summary-prev.json` exists, archive it to `weekly-archive/week-{date}.json`.
 2. If `weekly-summary-current.json` exists, move it to `weekly-summary-prev.json`.
 3. Write new `weekly-summary-current.json` with this week's summary.
