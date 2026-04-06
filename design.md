@@ -13,8 +13,9 @@ Agent Package (installed)                      User Data ~/Documents/dayarc/ (po
 │  prompts/      4 plan files      │           │  config.json identity+prefs  │
 │  templates/    4 HTML templates  │           └──────────────────────────────┘
 │  memory-schemas.md               │
-│  mcp.json      Work IQ + GitHub  │           Scheduler (optional, machine-specific)
-└──────────────────────────────────┘           scheduler.ps1 + OS task registration
+│  mcp.json      signal connectors │           Scheduler (optional, machine-specific)
+│  docs/         connector guides  │           scheduler.ps1 + OS task registration
+└──────────────────────────────────┘
 ```
 
 | Component | Provider | Auth |
@@ -26,6 +27,8 @@ Agent Package (installed)                      User Data ~/Documents/dayarc/ (po
 | Email | Outlook COM via shell | Signed-in Outlook |
 
 **Portability:** User data lives in `~/Documents/dayarc/` — auto-synced across corp machines via OneDrive/SharePoint. Install agent on new machine → run `irm .../setup.ps1 | iex` → `gh auth login` → works. Agent code + user data = Markdown + JSON (cross-platform). Only scheduler + Outlook COM are platform-specific.
+
+The COLLECT step (Step 1 in `pm.md` and `am.md`) is connector-agnostic — any MCP server can be plugged in as a signal source. See [docs/connector-interface/README.md](./docs/connector-interface/README.md) for the interface spec and connector setup guide.
 
 ## 1b. Install & Upgrade
 

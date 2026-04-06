@@ -35,28 +35,42 @@ If no replies found, continue to Step 1.
 
 ## Step 1: COLLECT
 
-Query **Work IQ** (ask_work_iq) for overnight/new signals:
-- "What flagged emails do I have?"
-- "What saved Teams messages do I have?"
-- "What new emails arrived since yesterday evening?"
-- "What new Teams @mentions do I have?"
-- "What meetings do I have today?"
+**Read active connectors:** Read `~/Documents/dayarc/config.json` → `connectors` array. If `connectors` is absent, fall back to built-in defaults: `work-iq` provides M365 signals, `github` provides GitHub signals (using `user.github_usernames` for identity).
 
-**Monday extension:** If today is Monday, extend lookback to cover Saturday and Sunday:
-- "What emails arrived since Friday evening?"
-- "What Teams messages arrived since Friday evening?"
+For each connector, check if it declares a `skill` field:
+- **If `skill` is present:** Invoke that skill by name, passing the connector's `config`, `lookback`, and `since_timestamp`. The skill handles all COLLECT queries for that connector and returns normalized signals. Skip the generic queries below for that connector.
+- **If no `skill`:** Use the generic query forms below, applying the connector's `config` block for identity and filtering.
 
-Query **GitHub MCP** (authenticated account):
-- Notifications since last check — specifically look for:
-  - `reason:mention` — someone @mentioned the user
-  - `reason:review_requested` — someone requested a PR review
-  - `reason:assign` — an issue or PR was assigned to the user
-- PRs awaiting my review (search: `is:pr review-requested:{username}` for **each** github_usernames entry)
-- Issues assigned to me (search: `is:issue assignee:{username}` for **each** github_usernames entry)
+**GitHub username resolution:** Resolve `$gh_usernames` = `github_connector.config.usernames ?? user.github_usernames`. Use this list for all GitHub queries below.
+
+For each signal category below, query every connector that lists it under `provides` and has no `skill`. See `docs/connector-interface/README.md` for the full query contract; built-in connector queries are listed here for reference.
+
+#### flagged_items — user-marked high-priority items
+- **work-iq**: "What flagged emails do I have?" / "What saved Teams messages do I have?"
+- **other connectors**: query for starred, flagged, or priority-marked items
+
+#### notifications — incoming @mentions, review requests, assignments
+- **work-iq**: "What new emails arrived since yesterday evening?" / "What new Teams @mentions do I have?"
+- **github**: For each username in `$gh_usernames`: notifications with reasons `{github_connector.config.notification_reasons ?? ["mention","review_requested","assign"]}` since last brief for `{username}`
+- **other connectors**: query for @mentions or new assignments since last brief
+
+#### assigned_items — open tasks assigned to the user
+- **github**: For each username in `$gh_usernames`: `is:pr review-requested:{username}` (PRs awaiting review); `is:issue assignee:{username}` (open assigned issues)
+- **other connectors**: query for open assigned tasks or tickets
+
+#### calendar — today's scheduled events
+- **work-iq**: "What meetings do I have today?"
+- **other connectors**: query for today's calendar events or scheduled meetings
+
+**Monday extension:** If today is Monday, extend lookback to cover Saturday and Sunday for all `notifications` queries:
+- **work-iq**: "What emails arrived since Friday evening?" / "What Teams messages arrived since Friday evening?"
+- **other connectors**: extend the since-timestamp to Friday evening
 
 **Note:** GitHub MCP can only fetch notifications for the active `gh` account. For other accounts (e.g. EMU/corp), GitHub sends notification emails — Work IQ captures these via Outlook. Cross-reference both sources to avoid missing items.
 
 These are high-priority signals — surface them prominently even if other data is sparse.
+
+**Graceful degradation:** If a connector is listed in `config.json` but its MCP server is unavailable, note the gap (e.g., "Jira connector unavailable") and continue with signals from other connectors.
 
 ## Step 2: READ
 

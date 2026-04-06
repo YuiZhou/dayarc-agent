@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased] — 2026-04-05
+
+### Added
+- `docs/connector-interface/README.md` — Signal source interface spec: signal categories, query contract, signal shape (conceptual contract), connector declaration fields (`provides`, `config`, `skill`, `mcp`), conversational setup via `dayarc-add-connector`, skill auto-discovery in `~/.copilot/skills/`
+- `docs/connector-interface/jira.md` — Jira connector example (provides `flagged_items`, `notifications`, `assigned_items`); includes `config` field table, "Advanced: BYO Skill" section, and note that the package name is an example
+- `skills/dayarc-add-connector` — Conversational connector setup skill: collects requirements, generates a custom COLLECT skill (with template syntax expanded into concrete markdown), writes it to `~/.copilot/skills/dayarc-connect-{tool}/` (upgrade-safe, auto-discovered by Copilot CLI), updates `mcp.json` and `config.json`
+- `config.example.json` — Added `connectors` array with `config` blocks on both built-in connectors (including empty `config: {}` for `work-iq` to show the pattern)
+- `README.md` — Added connector docs links to Documentation section
+
+### Changed
+- `prompts/pm.md` — COLLECT step: connector-agnostic with explicit `$gh_usernames` resolution (`config.usernames ?? user.github_usernames`) and username substituted directly into each query; dispatches to BYO skill when declared; doc path updated to `docs/connector-interface/README.md`
+- `prompts/am.md` — Same refactor: explicit `$gh_usernames` resolution and username-substituted queries
+- `design.md` — Architecture diagram updated (`docs/` replaces `connectors/`); §1a removed (details belong in `docs/connector-interface/README.md`); one-line pointer added
+- `skills/dayarc-upgrade` — After Update step 3: explicit logic to iterate `config.json → connectors[].mcp` and re-add missing MCP server entries to `mcp.json`; step numbering fixed (was duplicate step 4)
+- `skills/dayarc-add-connector` — Phase 2 note added: expand template syntax into concrete markdown, never leave `{FOR EACH}` / `{IF}` directives in output
+
 ## [Unreleased] — 2026-03-17
 
 ### Added

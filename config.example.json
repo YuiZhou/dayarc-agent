@@ -16,5 +16,20 @@
   },
   "scheduler": [
     { "machine": "DESKTOP-ABC", "am_time": "08:00", "pm_time": "20:00" }
+  ],
+  "connectors": [
+    {
+      "name": "work-iq",
+      "provides": ["sent_activity", "flagged_items", "saved_items", "calendar", "recent_docs"],
+      "config": {}
+    },
+    {
+      "name": "github",
+      "provides": ["sent_activity", "notifications", "assigned_items"],
+      "config": {
+        "usernames": ["your-handle"],
+        "notification_reasons": ["mention", "review_requested", "assign"]
+      }
+    }
   ]
 }
