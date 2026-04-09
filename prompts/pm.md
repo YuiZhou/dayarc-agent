@@ -19,14 +19,19 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 - Extract the `timestamp` field — this is your "since" cutoff.
 
 **0b. Query for reply emails.** Use **Work IQ** with this exact prompt:
-> Show me emails I received with subjects matching any of: `RE: ☀️`, `RE: 🌙`, `RE: 📊`, `RE: 📅` since {cutoff timestamp}
+> Show me emails I received since {cutoff timestamp} where the subject starts with any of these reply prefixes — `RE:`, `AW:`, `Antw:`, `Rép:` — followed by any of these emoji: `☀️`, `🌙`, `📊`, `📅`
 
 **0c. Process each reply found:**
-1. Use **parse_reply** skill to extract corrections.
+1. Use **parse_reply** skill to extract corrections and quality signals. Pass the **full raw email body** (including any HTML) — the skill handles stripping HTML tags and quoted-text separators before parsing.
 2. If corrections found, read the latest daily profile via **dayarc-memory**.
-3. Apply corrections (mark_done, remove, add_priority, correct) to the profile.
-4. Write updated profile back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
-5. Set a flag: `replies_applied = true` with a summary of what changed.
+3. Apply corrections to the profile using this field mapping:
+   - **mark_done**: find the matching item in `active_threads` (by keyword overlap on `description`) → set `status` to `"done"`. Also remove from `priorities_today` and `unfinished` if present.
+   - **remove**: remove the matching item from `priorities_today` and `unfinished` arrays. If found in `active_threads`, set `status` to `"dropped"`.
+   - **add_priority**: append a new entry to `priorities_today` with `description` = correction target, `urgency` = `"🟡 soon"`, `source_breadcrumb` = `"User reply"`.
+   - **correct**: find the matching item across `priorities_today`, `unfinished`, and `active_threads` and update its `description` with the corrected value.
+4. If quality signals found (sentiment positive or negative), write them to `profile.feedback` (overwrite any existing entry with the most recent signal; if multiple quality signals in one reply, use the last one or combine into a single detail string).
+5. Write updated profile back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
+6. Set a flag: `replies_applied = true` with a summary of what changed.
 
 **0d. Acknowledgment.** If `replies_applied`, include at the top of the brief output:
 > ✅ Applied corrections from your reply: {summary of changes}
