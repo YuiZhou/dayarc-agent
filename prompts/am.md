@@ -18,19 +18,23 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 - If missing, fall back to `runs/{yesterday}-am.json`, then 24 hours ago.
 - Extract the `timestamp` field — this is your "since" cutoff.
 
-**0b. Query for reply emails.** Use **Work IQ** with this exact prompt:
-> Show me emails I received since {cutoff timestamp} where the subject starts with any of these reply prefixes — `RE:`, `AW:`, `Antw:`, `Rép:` — followed by any of these emoji: `☀️`, `🌙`, `📊`, `📅`
+**0b. Query for inbox signals.** Use **Work IQ** to fetch two categories of emails since {cutoff timestamp}:
 
-**0c. Process each reply found:**
-1. Use **parse_reply** skill to extract corrections and quality signals. Pass the **full raw email body** (including any HTML) — the skill handles stripping HTML tags and quoted-text separators before parsing.
-2. If corrections found, read the latest daily profile via **dayarc-memory**.
-3. Apply corrections to the profile using this field mapping:
-   - **mark_done**: find the matching item in `active_threads` (by keyword overlap on `description`) → set `status` to `"done"`. Also remove from `priorities_today` and `unfinished` if present.
-   - **remove**: remove the matching item from `priorities_today` and `unfinished` arrays. If found in `active_threads`, set `status` to `"dropped"`.
-   - **add_priority**: append a new entry to `priorities_today` with `description` = correction target, `urgency` = `"🟡 soon"`, `source_breadcrumb` = `"User reply"`.
-   - **correct**: find the matching item across `priorities_today`, `unfinished`, and `active_threads` and update its `description` with the corrected value.
-4. If quality signals found (sentiment positive or negative), write them to `profile.feedback` (overwrite any existing entry with the most recent signal; if multiple quality signals in one reply, use the last one or combine into a single detail string).
-5. Write updated profile back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
+1. **Replies to Dayarc briefs** — emails where the subject starts with any of these reply prefixes (`RE:`, `AW:`, `Antw:`, `Rép:`) followed by any of these emoji: `☀️`, `🌙`, `📊`, `📅`
+2. **Self-sent memos** — emails the user sent to themselves (From: and To: are both the user's own email address). These are treated as self-correction notes and automatically tagged as high-priority.
+
+Collect both sets and pass each to Step 0c.
+
+**0c. Process each email found:**
+1. Use **parse_reply** skill to analyze the full email body in natural language. Pass the **full raw email body** (including any HTML) — the skill handles HTML stripping, quoted-text removal, and signature removal automatically before extracting intent.
+2. If the parsed result contains corrections, read the latest daily profile via **dayarc-memory**.
+3. For each correction in the `parse_reply` output, apply the corresponding profile update. The `action` field in each correction (produced by parse_reply's NL analysis, not by the user) determines what to change:
+   - `mark_done` → find the matching item in `active_threads` (by keyword overlap on `description`) and set `status` to `"done"`; remove matching entries from `priorities_today` and `unfinished`.
+   - `remove` → remove the matching item from `priorities_today` and `unfinished` arrays; if found in `active_threads`, set `status` to `"dropped"`.
+   - `add_priority` → append a new entry to `priorities_today`: `description` = correction target, `urgency` = `"🟡 soon"`, `source_breadcrumb` = `"User reply"` (or `"Self-memo"` for self-sent emails).
+   - `correct` → find the matching item across `priorities_today`, `unfinished`, and `active_threads` and update its `description` with the corrected value.
+4. If the parsed result contains quality signals (sentiment positive or negative), write the most recent one to `profile.feedback` (overwrite any existing entry; if multiple, combine into a single detail string).
+5. Write the updated profile back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
 6. Set a flag: `replies_applied = true` with a summary of what changed.
 
 **0d. Acknowledgment.** If `replies_applied`, include at the top of the brief output:
