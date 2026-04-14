@@ -39,9 +39,11 @@ After update, check for scheduler re-registration (see **After Update** section)
 Report:
 > ✅ Plugin updated. {changelog summary}
 
-**Note:** Stable upgrades always use `copilot plugin update dayarc`. Preview branch upgrades fall back to the git clone at `~/.dayarc-agent/` if available (see below).
+**Note:** Stable upgrades always use `copilot plugin update dayarc`. `copilot plugin` only installs published releases — it has no mechanism to install from an arbitrary git branch or commit. Preview branch upgrades therefore fall back to the git clone at `~/.dayarc-agent/` if available (see below).
 
 ### Preview Branches with Plugin Install
+
+`copilot plugin` cannot preview a branch — it operates on published/versioned releases only. To run a preview branch alongside a plugin install, the skill uses the git clone at `~/.dayarc-agent/` for git operations while leaving the plugin-managed `~/.copilot/` path untouched.
 
 If the user asks to upgrade to a preview branch or commit while running a plugin install, check whether a git clone also exists:
 
