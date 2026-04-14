@@ -82,46 +82,31 @@ function Is-LastWorkday {
 
 $today = Get-Date
 
-# ── Remote session flag ───────────────────────────────────────────────────────
-# Read remote_sessions from config.json (opt-in, default false).
-$remoteFlag = ""
-$configPath = Join-Path $profileDir "config.json"
-if (Test-Path $configPath) {
-    try {
-        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
-        if ($cfg.remote_sessions -eq $true) {
-            $remoteFlag = "--remote"
-        }
-    } catch {
-        Log "[Dayarc] WARNING: Could not read config.json for remote_sessions flag: $_"
-    }
-}
-
-Log "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd')) | Agent: $agentName | Remote: $($remoteFlag -ne '')"
+Log "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd')) | Agent: $agentName"
 
 Push-Location $profileDir
 
 if ($trigger -eq "am") {
     Log "[Dayarc] Running AM brief..."
-    & copilot --agent=$agentName --allow-all $remoteFlag --prompt "$agentDir\prompts\am.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+    & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\am.md" 2>&1 | Tee-Object -FilePath $logFile -Append
 }
 
 if ($trigger -eq "pm") {
     Log "[Dayarc] Running PM brief..."
-    & copilot --agent=$agentName --allow-all $remoteFlag --prompt "$agentDir\prompts\pm.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+    & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\pm.md" 2>&1 | Tee-Object -FilePath $logFile -Append
 
     if ($today.DayOfWeek -eq [DayOfWeek]::Friday) {
         Log "[Dayarc] Friday -- running Weekly brief..."
-        & copilot --agent=$agentName --allow-all $remoteFlag --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
 
         if (Is-LastWorkday $today) {
             Log "[Dayarc] Last workday of month -- running Monthly brief..."
-            & copilot --agent=$agentName --allow-all $remoteFlag --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
         }
     } elseif (Is-LastWorkday $today) {
         Log "[Dayarc] Last workday of month (non-Friday) -- running Weekly + Monthly..."
-        & copilot --agent=$agentName --allow-all $remoteFlag --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
-        & copilot --agent=$agentName --allow-all $remoteFlag --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
     }
 }
 
