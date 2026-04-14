@@ -77,6 +77,7 @@ Write to `~/Documents/dayarc/config.json`:
     "github_usernames": ["<handle1>", "<handle2>"]
   },
   "locale": "<locale from Step 2, default 'en'>",
+  "remote_sessions": false,
   "preferences": {
     "brief_max_items": 15,
     "priority_max_items": 5,
