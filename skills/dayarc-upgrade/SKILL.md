@@ -28,7 +28,7 @@ $isClone = Test-Path (Join-Path $cloneDir ".git")
 
 ## Plugin Upgrade
 
-If installed as a plugin, upgrades are simple:
+If installed as a plugin, stable upgrades are simple:
 
 ```powershell
 copilot plugin update dayarc
@@ -39,7 +39,24 @@ After update, check for scheduler re-registration (see **After Update** section)
 Report:
 > ✅ Plugin updated. {changelog summary}
 
-**Preview branches are not supported for plugin installs.** If the user asks for a preview branch, tell them to use the git clone install method instead.
+**Note:** Stable upgrades always use `copilot plugin update dayarc`. Preview branch upgrades fall back to the git clone at `~/.dayarc-agent/` if available (see below).
+
+### Preview Branches with Plugin Install
+
+If the user asks to upgrade to a preview branch or commit while running a plugin install, check whether a git clone also exists:
+
+```powershell
+$cloneDir = Join-Path $HOME ".dayarc-agent"
+$isClone = Test-Path (Join-Path $cloneDir ".git")
+```
+
+- **Clone exists (`$isClone` is true):** Fall through to the **Git Clone Upgrade → Preview Upgrade** path using `~/.dayarc-agent/` for all git operations. However, in the **After Update** step, **skip the "copy files to `~/.copilot/`" sub-step** — the plugin system owns that path and must not be overwritten. Still write the `.preview` marker, re-apply connector MCP entries, re-register the scheduler, and report as normal.
+
+- **Clone does not exist:** Tell the user:
+  > Preview branches require a git clone at `~/.dayarc-agent/`. Run the following to set it up, then retry:
+  > ```
+  > git clone https://github.com/YuiZhou/dayarc-agent ~/.dayarc-agent
+  > ```
 
 ## Git Clone Upgrade
 
