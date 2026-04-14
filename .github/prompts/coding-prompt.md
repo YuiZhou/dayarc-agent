@@ -31,6 +31,7 @@ If the fix is genuinely impossible (e.g., requires external API changes, depends
 ## Rules
 
 - Make minimal, targeted changes — don't rewrite entire files unnecessarily
+- **NEVER modify files under `.github/workflows/` or `.github/prompts/`.** These are CI/CD infrastructure managed by the maintainer. If the fix requires workflow or prompt changes, write `unable.md` explaining what needs to change and why.
 - Feature requests: only fix if the change is trivially additive. Otherwise write `unable.md`.
 - Always reference the relevant spec/design section in `summary.md`
 - **NEVER ask the user questions or wait for input.** You are running unattended in CI. If something is ambiguous, make your best judgment or write `unable.md`.

@@ -324,7 +324,7 @@ jobs:
         if: steps.detect.outputs.action == 'fix' && steps.mode.outputs.mode == 'new'
         id: pr
         env:
-          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+          GH_TOKEN: ${{ github.token }}
           DETECT_SUMMARY: ${{ steps.detect.outputs.summary }}
           ISSUE_TITLE: ${{ steps.resolve.outputs.title }}
         run: |
@@ -335,11 +335,6 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Use COPILOT_PAT for push — github.token lacks `workflows`
-          # permission needed when Copilot edits .github/workflows/ files.
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-
           git checkout -b "$BRANCH"
 
           BASELINE="${{ steps.baseline.outputs.sha }}"
@@ -401,14 +396,9 @@ jobs:
       - name: Push commits to PR branch
         if: steps.detect.outputs.action == 'fix' && steps.mode.outputs.mode == 'continue'
         id: push
-        env:
-          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Use COPILOT_PAT for push — github.token lacks `workflows` permission
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
 
           # Stage any cleanup from Step 7 (temp files removed) as an
           # amend to the last Copilot commit, keeping history linear.
