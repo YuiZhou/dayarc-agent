@@ -28,16 +28,11 @@ $isClone = Test-Path (Join-Path $cloneDir ".git")
 
 ## Plugin Upgrade
 
-If installed as a plugin, upgrades are simple:
+If installed as a plugin, **do not run the upgrade yourself.** Plugin upgrades are managed by the Copilot CLI's built-in slash command, which only the user can invoke from chat. Instruct the user:
 
-```powershell
-copilot plugin update dayarc
-```
+> To upgrade the Dayarc plugin, run `/plugin update dayarc` in this chat. Once it finishes, ask me again and I'll re-register the scheduler if needed.
 
-After update, check for scheduler re-registration (see **After Update** section).
-
-Report:
-> ✅ Plugin updated. {changelog summary}
+If the user reports the slash command has completed, run the **After Update** scheduler re-registration steps (skip the file-copy step — the plugin system handles that).
 
 **Preview branches are not supported for plugin installs.** If the user asks for a preview branch, tell them to use the git clone install method instead.
 
