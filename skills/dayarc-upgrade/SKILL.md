@@ -28,65 +28,16 @@ $isClone = Test-Path (Join-Path $cloneDir ".git")
 
 ## Plugin Upgrade
 
-If installed as a plugin, upgrades proceed as follows:
-
-### 1. Capture current version
-
-Read the current version from `plugin.json` before making any changes:
+If installed as a plugin, upgrades are simple:
 
 ```powershell
-$pluginJsonPath = $pluginHit.FullName  # already resolved above
-$oldVersion = (Get-Content $pluginJsonPath -Raw | ConvertFrom-Json).version
+copilot plugin update dayarc
 ```
 
-### 2. Run the update
+After update, check for scheduler re-registration (see **After Update** section).
 
-Capture both stdout and stderr:
-
-```powershell
-$updateOutput = copilot plugin update dayarc 2>&1
-$updateExitCode = $LASTEXITCODE
-```
-
-### 3. Scan output for error patterns
-
-Even when the exit code is 0, treat the update as failed if the output contains any of these patterns:
-
-- `Failed to install`
-- `EBUSY`
-- `Error:`
-
-```powershell
-$errorPatterns = @("Failed to install", "EBUSY", "Error:")
-$outputFailed = $errorPatterns | Where-Object { $updateOutput -match $_ }
-if ($updateExitCode -ne 0 -or $outputFailed) {
-    Write-Host "❌ Plugin update failed. Output:"
-    Write-Host $updateOutput
-    return
-}
-```
-
-If any pattern matches or the exit code is non-zero, stop and surface the full output to the user. Do not proceed.
-
-### 4. Compare versions
-
-Re-read the version from `plugin.json` after the update:
-
-```powershell
-$newVersion = (Get-Content $pluginJsonPath -Raw | ConvertFrom-Json).version
-```
-
-- **If `$newVersion` equals `$oldVersion`** → the update was a no-op. Report:
-  > ℹ️ Already up to date — no version change detected (still `{oldVersion}`).
-  >
-  > If you expected an update, check the output above for clues or try again later.
-
-  Surface `$updateOutput` so the user can inspect it.
-
-- **If `$newVersion` differs from `$oldVersion`** → the update succeeded. Report:
-  > ✅ Plugin updated: `v{oldVersion}` → `v{newVersion}`. {changelog summary}
-
-After a successful update, check for scheduler re-registration (see **After Update** section).
+Report:
+> ✅ Plugin updated. {changelog summary}
 
 **Preview branches are not supported for plugin installs.** If the user asks for a preview branch, tell them to use the git clone install method instead.
 
