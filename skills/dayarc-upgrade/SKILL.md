@@ -28,29 +28,16 @@ $isClone = Test-Path (Join-Path $cloneDir ".git")
 
 ## Plugin Upgrade
 
-If installed as a plugin:
+If installed as a plugin, upgrades are simple:
 
 ```powershell
-$pluginJsonPath = $pluginHit.FullName
-$oldVersion = (Get-Content $pluginJsonPath -Raw | ConvertFrom-Json).version
-
-$updateOutput = copilot plugin update dayarc 2>&1
-$updateExit   = $LASTEXITCODE
-
-$newVersion = (Get-Content $pluginJsonPath -Raw | ConvertFrom-Json).version
+copilot plugin update dayarc
 ```
 
-Decide what to report based on exit code and version diff:
+After update, check for scheduler re-registration (see **After Update** section).
 
-- **Non-zero exit code** → upgrade failed. Report `❌ Plugin update failed.` and surface `$updateOutput` so the user can inspect it. Do not run the **After Update** steps.
-- **Exit 0 and `$newVersion -eq $oldVersion`** → no-op. Report:
-  > ℹ️ Already up to date — still on `v$oldVersion` (no version change detected).
-
-  The CI pipeline bumps `plugin.json`'s patch version on every release, so an unchanged version after a successful command means nothing new was actually installed (e.g. directory locked, registry already at latest). Surface `$updateOutput` for context.
-- **Exit 0 and `$newVersion -ne $oldVersion`** → upgrade succeeded. Report:
-  > ✅ Plugin updated: `v$oldVersion` → `v$newVersion`. {changelog summary}
-
-  Then check for scheduler re-registration (see **After Update** section).
+Report:
+> ✅ Plugin updated. {changelog summary}
 
 **Preview branches are not supported for plugin installs.** If the user asks for a preview branch, tell them to use the git clone install method instead.
 
