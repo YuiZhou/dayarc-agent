@@ -21,6 +21,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# Prevent non-zero exit codes from the Copilot CLI from throwing terminating errors
+# on PowerShell 7.4+ (where $PSNativeCommandUseErrorActionPreference defaults to $true).
+# The CLI sometimes exits non-zero even on successful delivery; subsequent blocks must run.
+$PSNativeCommandUseErrorActionPreference = $false
 
 # ── Discover agent package location ──────────────────────────────────────────
 # Plugin install: lives under ~/.copilot/installed-plugins/
@@ -88,25 +92,49 @@ Push-Location $profileDir
 
 if ($trigger -eq "am") {
     Log "[Dayarc] Running AM brief..."
-    & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\am.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+    try {
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\am.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+    } catch {
+        Log "[Dayarc] WARNING: copilot exited non-zero during AM brief: $_"
+    }
 }
 
 if ($trigger -eq "pm") {
     Log "[Dayarc] Running PM brief..."
-    & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\pm.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+    try {
+        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\pm.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+    } catch {
+        Log "[Dayarc] WARNING: copilot exited non-zero during PM brief: $_"
+    }
 
     if ($today.DayOfWeek -eq [DayOfWeek]::Friday) {
         Log "[Dayarc] Friday -- running Weekly brief..."
-        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        try {
+            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        } catch {
+            Log "[Dayarc] WARNING: copilot exited non-zero during Weekly brief: $_"
+        }
 
         if (Is-LastWorkday $today) {
             Log "[Dayarc] Last workday of month -- running Monthly brief..."
-            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+            try {
+                & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+            } catch {
+                Log "[Dayarc] WARNING: copilot exited non-zero during Monthly brief: $_"
+            }
         }
     } elseif (Is-LastWorkday $today) {
         Log "[Dayarc] Last workday of month (non-Friday) -- running Weekly + Monthly..."
-        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
-        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        try {
+            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        } catch {
+            Log "[Dayarc] WARNING: copilot exited non-zero during Weekly brief: $_"
+        }
+        try {
+            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        } catch {
+            Log "[Dayarc] WARNING: copilot exited non-zero during Monthly brief: $_"
+        }
     }
 }
 
