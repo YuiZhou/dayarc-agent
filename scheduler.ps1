@@ -88,52 +88,81 @@ $today = Get-Date
 
 Log "[Dayarc] Trigger: $trigger | Date: $($today.ToString('yyyy-MM-dd')) | Agent: $agentName"
 
+# ── Scheduled-mode helper ────────────────────────────────────────────────────
+# Prepend a SCHEDULED MODE header so the agent skips First-Run Detection and
+# executes the prompt steps immediately, regardless of agent_instructions order.
+function New-ScheduledPrompt([string]$promptPath) {
+    $header = "## SCHEDULED MODE`nExecute all Steps in the prompt below in order. Do NOT greet. Do NOT summarize capabilities. Do NOT stop after reading config.`n`n"
+    $content = $header + (Get-Content $promptPath -Raw -Encoding UTF8)
+    $tmp = [System.IO.Path]::ChangeExtension([System.IO.Path]::GetTempFileName(), ".md")
+    [System.IO.File]::WriteAllText($tmp, $content, [System.Text.Encoding]::UTF8)
+    return $tmp
+}
+
 Push-Location $profileDir
 
 if ($trigger -eq "am") {
     Log "[Dayarc] Running AM brief..."
+    $tmpPrompt = New-ScheduledPrompt "$agentDir\prompts\am.md"
     try {
-        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\am.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        & copilot --agent=$agentName --allow-all --prompt $tmpPrompt 2>&1 | Tee-Object -FilePath $logFile -Append
     } catch {
         Log "[Dayarc] WARNING: copilot exited non-zero during AM brief: $_"
+    } finally {
+        Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
     }
 }
 
 if ($trigger -eq "pm") {
     Log "[Dayarc] Running PM brief..."
+    $tmpPrompt = New-ScheduledPrompt "$agentDir\prompts\pm.md"
     try {
-        & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\pm.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+        & copilot --agent=$agentName --allow-all --prompt $tmpPrompt 2>&1 | Tee-Object -FilePath $logFile -Append
     } catch {
         Log "[Dayarc] WARNING: copilot exited non-zero during PM brief: $_"
+    } finally {
+        Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
     }
 
     if ($today.DayOfWeek -eq [DayOfWeek]::Friday) {
         Log "[Dayarc] Friday -- running Weekly brief..."
+        $tmpPrompt = New-ScheduledPrompt "$agentDir\prompts\weekly.md"
         try {
-            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+            & copilot --agent=$agentName --allow-all --prompt $tmpPrompt 2>&1 | Tee-Object -FilePath $logFile -Append
         } catch {
             Log "[Dayarc] WARNING: copilot exited non-zero during Weekly brief: $_"
+        } finally {
+            Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
         }
 
         if (Is-LastWorkday $today) {
             Log "[Dayarc] Last workday of month -- running Monthly brief..."
+            $tmpPrompt = New-ScheduledPrompt "$agentDir\prompts\monthly.md"
             try {
-                & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+                & copilot --agent=$agentName --allow-all --prompt $tmpPrompt 2>&1 | Tee-Object -FilePath $logFile -Append
             } catch {
                 Log "[Dayarc] WARNING: copilot exited non-zero during Monthly brief: $_"
+            } finally {
+                Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
             }
         }
     } elseif (Is-LastWorkday $today) {
         Log "[Dayarc] Last workday of month (non-Friday) -- running Weekly + Monthly..."
+        $tmpPrompt = New-ScheduledPrompt "$agentDir\prompts\weekly.md"
         try {
-            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\weekly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+            & copilot --agent=$agentName --allow-all --prompt $tmpPrompt 2>&1 | Tee-Object -FilePath $logFile -Append
         } catch {
             Log "[Dayarc] WARNING: copilot exited non-zero during Weekly brief: $_"
+        } finally {
+            Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
         }
+        $tmpPrompt = New-ScheduledPrompt "$agentDir\prompts\monthly.md"
         try {
-            & copilot --agent=$agentName --allow-all --prompt "$agentDir\prompts\monthly.md" 2>&1 | Tee-Object -FilePath $logFile -Append
+            & copilot --agent=$agentName --allow-all --prompt $tmpPrompt 2>&1 | Tee-Object -FilePath $logFile -Append
         } catch {
             Log "[Dayarc] WARNING: copilot exited non-zero during Monthly brief: $_"
+        } finally {
+            Remove-Item $tmpPrompt -ErrorAction SilentlyContinue
         }
     }
 }
