@@ -32,6 +32,7 @@ If the fix is genuinely impossible (e.g., requires external API changes, depends
 
 - Make minimal, targeted changes — don't rewrite entire files unnecessarily
 - **NEVER modify files under `.github/workflows/` or `.github/prompts/`.** These are CI/CD infrastructure managed by the maintainer. If the fix requires workflow or prompt changes, write `unable.md` explaining what needs to change and why.
+- **NEVER modify the `version` field in `plugin.json`.** The CI pipeline automatically bumps the patch version on every auto-fix commit so the `dayarc-upgrade` skill can detect new builds — touching it yourself will conflict with the pipeline.
 - Feature requests: only fix if the change is trivially additive. Otherwise write `unable.md`.
 - Always reference the relevant spec/design section in `summary.md`
 - **NEVER ask the user questions or wait for input.** You are running unattended in CI. If something is ambiguous, make your best judgment or write `unable.md`.

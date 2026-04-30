@@ -319,6 +319,32 @@ jobs:
             echo "$CHANGED"
           fi
 
+      # ── Step 7b: Bump plugin.json patch version ──────────────────────────
+      # Every auto-fix PR (and every continue-session iteration) bumps the
+      # patch version so the dayarc-upgrade skill can reliably detect that
+      # a new build was installed by diffing plugin.json's version field
+      # before vs. after `copilot plugin update dayarc`. See issue #93.
+      - name: Bump plugin.json patch version
+        if: steps.detect.outputs.action == 'fix'
+        run: |
+          if [ ! -f plugin.json ]; then
+            echo "plugin.json not found at repo root — skipping bump"
+            exit 0
+          fi
+          CURR=$(grep -oP '"version"\s*:\s*"\K[^"]+' plugin.json)
+          if [ -z "$CURR" ]; then
+            echo "Could not parse version from plugin.json — skipping bump"
+            exit 0
+          fi
+          IFS=. read -r MAJ MIN PAT <<< "$CURR"
+          if ! [[ "$PAT" =~ ^[0-9]+$ ]]; then
+            echo "Patch segment '$PAT' is not numeric — skipping bump"
+            exit 0
+          fi
+          NEW="${MAJ}.${MIN}.$((PAT + 1))"
+          sed -i -E "s/(\"version\"[[:space:]]*:[[:space:]]*\")[^\"]+(\")/\1${NEW}\2/" plugin.json
+          echo "Bumped plugin.json version: ${CURR} -> ${NEW}"
+
       # ── Step 8a: Create branch + PR (new session) ────────────────────────
       - name: Create branch and PR
         if: steps.detect.outputs.action == 'fix' && steps.mode.outputs.mode == 'new'
