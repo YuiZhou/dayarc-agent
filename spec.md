@@ -147,7 +147,7 @@ Communication between briefs only through shared memory files — never by calli
 |-------|-----------|--------|-------|
 | Daily profile | PM brief | Up to 5 (current week; purged on weekly rotation) | Every AM brief, weekly report |
 | Weekly summary | Weekly report | 2 (current + prev) | Every AM brief |
-| Monthly summary | Monthly report | 1 (latest) | Every AM brief |
+| Monthly summary | Monthly report | 1 (latest) + archive up to 6 months | Every AM brief, review prep |
 
 - **Daily** profiles accumulate Mon–Fri (up to 5). Weekly report reads all 5, then purges them.
 - **Weekly** absorbs previous weekly's unresolved items before discarding it.

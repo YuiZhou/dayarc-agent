@@ -209,6 +209,17 @@
 
 ---
 
+## Monthly Archive
+
+**File:** `monthly-archive/{YYYY-MM}.json` (e.g., `monthly-archive/2026-03.json`)
+**Written by:** Monthly brief (Step 3) — the previous `monthly-summary.json` is archived here before being overwritten.
+**Retained:** Up to 6 months. Files older than 6 months are purged on each monthly rotation.
+**Schema:** Same as `MonthlySummary` above.
+
+This archive is the data source for the **dayarc-review-prep** skill, which reads 1–6 months to generate performance review talking points.
+
+---
+
 ## Run Tags
 
 **File:** `runs/{date}-{type}.json` (e.g., `runs/2026-03-14-pm.json`)

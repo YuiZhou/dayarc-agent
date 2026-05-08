@@ -19,6 +19,7 @@ Via **dayarc-memory**, read:
 - All files in `weekly-archive/` directory
 - `weekly-summary-current.json`
 - `monthly-summary.json` (previous month — if exists)
+- All files in `monthly-archive/` directory (for absorbed_from_previous context)
 
 Handle missing files gracefully (bootstrap).
 
@@ -38,10 +39,11 @@ Produce brief sections:
 ## Step 3: WRITE (Memory Lifecycle)
 
 Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool), execute in this exact order:
-1. If `monthly-summary.json` exists, it is the previous month — absorb its unresolved items into the new summary.
+1. If `monthly-summary.json` exists, it is the previous month — absorb its unresolved items into the new summary, then archive it to `monthly-archive/{YYYY-MM}.json` (using the `month` field of the existing summary as the filename, e.g., `monthly-archive/2026-03.json`).
 2. Overwrite `monthly-summary.json` with this month's summary.
 3. Delete all files in `weekly-archive/` older than current month (keep current month's archives).
-4. Write `runs/{today}-monthly.json` run tag.
+4. Delete all files in `monthly-archive/` older than 6 months from today (keep the 6 most recent archived months).
+5. Write `runs/{today}-monthly.json` run tag.
 
 ## Step 4: DELIVER
 
