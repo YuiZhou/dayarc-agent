@@ -15,6 +15,7 @@ Read any JSON file from the memory directory. Common files:
 - `weekly-summary-prev.json`
 - `weekly-archive/{week-date}.json`
 - `monthly-summary.json`
+- `monthly-archive/{YYYY-MM}.json`
 - `runs/{date}-{type}.json`
 
 To list files: list the contents of a subdirectory.
@@ -39,7 +40,7 @@ Write JSON to the memory directory. ALWAYS read memory-schemas.md first and vali
 ### Memory Lifecycle (for scheduled plans)
 - PM: write daily-profile-{today}.json
 - Weekly: absorb prev → archive to weekly-archive/ → rotate current→prev → write new → purge dailies
-- Monthly: absorb prev month → overwrite monthly-summary.json → purge weekly-archive older than current month
+- Monthly: absorb prev month → archive to monthly-archive/{YYYY-MM}.json → overwrite monthly-summary.json → purge weekly-archive older than current month → purge monthly-archive older than 6 months
 
 ### Run Tags
 Write `runs/{date}-{type}.json` (e.g., `runs/2026-03-14-pm.json`) before sending email. If tag exists, skip — already ran.

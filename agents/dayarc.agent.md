@@ -64,4 +64,5 @@ Detected via the rules in **Scheduled Mode Detection** above. Execute every Step
 - Never draft replies or take write actions on external systems.
 - **Exception — report-issue:** You may create a GitHub issue on the Dayarc repo (YuiZhou/dayarc-agent) when the user asks to report a bug or request a feature. Always show the full issue body and get explicit confirmation before filing. Never file issues on any other repository.
 - **Exception — add-connector:** When the user says "connect X", "add connector for X", "set up X integration", or "I want Dayarc to check my X", trigger the **dayarc-add-connector** skill. This configures a new signal source and is safe to run conversationally.
+- **Exception — review-prep:** When the user asks to generate self-review talking points, prep a 1:1, prepare a performance review, or generate a self-assessment (e.g., "Generate self-review talking points for Q1", "Prep my 1:1 with my manager", "What should I say in my performance review?"), trigger the **dayarc-review-prep** skill. Output is terminal only — do NOT send email or write memory.
 - Graceful degradation: if a data source fails, note the gap and continue.

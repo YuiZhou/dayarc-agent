@@ -113,6 +113,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 | `dayarc-deliver` | HTML email or terminal | Render template + send via Outlook COM |
 | `dayarc-upgrade` | Status message | Check for / apply agent updates from GitHub |
 | `dayarc-report-issue` | GitHub issue URL | Auto-fill and file bug/feature on Dayarc repo (user confirms) |
+| `dayarc-review-prep` | Terminal output | Generate performance review / 1:1 talking points from 1–6 monthly summaries |
 
 ## 5. Memory
 
@@ -124,6 +125,7 @@ weekly-summary-current.json
 weekly-summary-prev.json
 weekly-archive/                         # Current month only
 monthly-summary.json
+monthly-archive/                        # Up to 6 months (for review prep)
 runs/{date}-{type}.json                 # Idempotency (scheduled only)
 ```
 
@@ -131,7 +133,7 @@ runs/{date}-{type}.json                 # Idempotency (scheduled only)
 
 **Weekly** — `themes[{label, effort_share, progress}]`, `accomplishments[]`, `stuck_items[{description, days_carried}]`, `suggested_focus_next_week[]`, `absorbed_from_previous[]`
 
-**Monthly** — `time_allocation[{area, share, trend}]`, `accomplishments[]`, `persistently_stuck[{description, weeks_stuck}]`, `learning_progress[{topic, trajectory, recommendation}]`, `outlook_next_month[]`, `absorbed_from_previous[]`
+**Monthly** — `time_allocation[{area, share, trend}]`, `accomplishments[]`, `persistently_stuck[{description, weeks_stuck}]`, `learning_progress[{topic, trajectory, recommendation}]`, `outlook_next_month[]`, `absorbed_from_previous[]`. Archived to `monthly-archive/{YYYY-MM}.json`; up to 6 months retained for **review prep**.
 
 **Memory correction** — Conversation ("mark X as done") or email reply (Step 0). Both update daily profile only; propagates through distillation.
 
