@@ -1,45 +1,55 @@
 ---
 name: Deliver Brief
-description: Render HTML brief from template and send via Outlook or display in terminal.
+description: Render brief from template and deliver to configured targets (email, GitHub issue, terminal).
 ---
 
 ## Templates
 Located in this skill's `templates/` directory:
+
+**HTML templates (for email):**
 - `pm.hbs` — Evening Wrap-up
 - `am.hbs` — Morning Brief
 - `weekly.hbs` — Weekly Report
 - `monthly.hbs` — Monthly Report
 
-## Delivery Modes
+**Markdown templates (for GitHub issues and other markdown-native targets):**
+- `pm.md.hbs` — Evening Wrap-up
+- `am.md.hbs` — Morning Brief
+- `weekly.md.hbs` — Weekly Report
+- `monthly.md.hbs` — Monthly Report
 
-### Scheduled (send email)
-1. Render the appropriate .hbs template with brief data.
-2. **If `locale` is not `en`:** Translate the rendered HTML body text into the target language before sending. Preserve all HTML tags, inline styles, emoji, and source breadcrumb links unchanged — translate only the visible text content.
-3. Save rendered (and translated, if applicable) HTML to a temp file.
-4. Send via Outlook COM:
-```powershell
-$ol = New-Object -ComObject Outlook.Application
-$mail = $ol.CreateItem(0)
-$mail.To = $ol.Session.CurrentUser.Address
-$mail.Subject = "{subject}"
-$mail.HTMLBody = Get-Content "{html-path}" -Raw
-$mail.Send()
+## Delivery Targets
+
+Read `~/Documents/dayarc/config.json → delivery` to determine where to send the brief. If the `delivery` field is absent or empty, fall back to the default: **email-only for all brief types**.
+
+```json
+{
+  "delivery": [
+    { "target": "email", "briefs": ["pm", "am", "weekly", "monthly"] },
+    { "target": "github-issue", "briefs": ["weekly"],
+      "config": { "repo": "owner/repo", "labels": ["weekly-brief"] } }
+  ]
+}
 ```
 
-Email subjects (translate the subject too if `locale` is not `en`):
-- PM: `🌙 Evening Wrap-up — {date}`
-- AM: `☀️ Morning Brief — {date}`
-- Weekly: `📊 Weekly — Week of {date}`
-- Monthly: `📅 Monthly — {month} {year}`
+**Allowed brief IDs:** `am`, `pm`, `weekly`, `monthly`
 
-### Conversational (terminal)
-Render the brief as formatted text in the terminal. If `locale` is not `en`, translate the output before displaying. Do NOT send email unless the user explicitly says "send it".
+For each target entry where the current `briefType` is in the `briefs` array, execute that target's delivery handler. **Targets are independent** — if one fails, log the error and continue with others. End with a delivery summary showing which targets succeeded and which failed.
 
-## Instructions
-1. Verify Outlook is running before attempting send (check process).
-2. If Outlook not available, display in terminal and note that email was not sent.
-3. **Idempotency check — run before every scheduled send:**
-   Query Outlook Sent Items for a message with today's brief subject (e.g. `🌙 Evening Wrap-up — {date}`). Use the Outlook COM object:
+---
+
+## Delivery Modes
+
+### Scheduled (multi-target)
+
+**Step 1: Render** — Render the appropriate template with brief data. Use `.hbs` (HTML) for email targets and `.md.hbs` (Markdown) for GitHub and other markdown-native targets. If `locale` is not `en`, translate the rendered content into the target language (preserving all markup, emoji, and links).
+
+**Step 2: Deliver to each target** — For each matching target in config:
+
+#### Target: `email`
+
+1. Verify Outlook is running (check process).
+2. **Idempotency check:** Query Outlook Sent Items for a message with this brief's subject:
    ```powershell
    $ol = New-Object -ComObject Outlook.Application
    $sent = $ol.Session.GetDefaultFolder(5)  # 5 = olFolderSentMail
@@ -47,8 +57,84 @@ Render the brief as formatted text in the terminal. If `locale` is not `en`, tra
    $alreadySent = $sent.Items | Where-Object { $_.Subject -eq $subject } | Select-Object -First 1
    if ($alreadySent) {
        Write-Host "already delivered — skipping send (ItemID: $($alreadySent.EntryID))"
-       exit 0
+       # skip this target, continue to next
    }
    ```
-   If a matching item is found, log `already delivered` and skip sending. Do not send a second copy.
-4. Clean up temp files after sending.
+3. Send via Outlook COM:
+   ```powershell
+   $ol = New-Object -ComObject Outlook.Application
+   $mail = $ol.CreateItem(0)
+   $mail.To = $ol.Session.CurrentUser.Address
+   $mail.Subject = "{subject}"
+   $mail.HTMLBody = Get-Content "{html-path}" -Raw
+   $mail.Send()
+   ```
+
+Email subjects (translate if `locale` is not `en`):
+- PM: `🌙 Evening Wrap-up — {date}`
+- AM: `☀️ Morning Brief — {date}`
+- Weekly: `📊 Weekly — Week of {date}`
+- Monthly: `📅 Monthly — {month} {year}`
+
+#### Target: `github-issue`
+
+Creates a GitHub issue with the rendered Markdown brief.
+
+**Config fields:**
+| Field | Required | Description |
+|-------|----------|-------------|
+| `repo` | ✅ | Target repository in `owner/repo` format |
+| `labels` | optional | Array of label names to apply |
+| `assignees` | optional | Array of GitHub usernames to assign |
+
+**Idempotency:** Before creating, search for an existing issue with the same idempotency marker:
+```powershell
+$marker = "<!-- dayarc:brief={briefType} period={period} -->"
+$existing = gh issue list --repo "{repo}" --search "$marker" --state all --json number --jq ".[0].number" 2>$null
+if ($existing) {
+    Write-Host "already delivered — issue #$existing exists, skipping"
+    # skip this target, continue to next
+}
+```
+
+**Create the issue:**
+1. Render the `.md.hbs` template.
+2. Prepend the idempotency marker as a hidden HTML comment at the top of the body.
+3. Write rendered content to a temp file.
+4. Create the issue:
+   ```powershell
+   $title = "{subject}"
+   $labelArgs = ($labels | ForEach-Object { "--label `"$_`"" }) -join " "
+   gh issue create --repo "{repo}" --title "$title" --body-file "{temp-file}" $labelArgs
+   ```
+5. Clean up temp file.
+
+**Period format:**
+- PM/AM: `{YYYY-MM-DD}` (e.g., `2026-05-28`)
+- Weekly: `{YYYY}-W{week-number}` (e.g., `2026-W22`)
+- Monthly: `{YYYY-MM}` (e.g., `2026-05`)
+
+**Subjects (used as issue title):**
+- PM: `🌙 Evening Wrap-up — {date}`
+- AM: `☀️ Morning Brief — {date}`
+- Weekly: `📊 Weekly — Week of {date}`
+- Monthly: `📅 Monthly — {month} {year}`
+
+> ⚠️ **Privacy note:** GitHub issues may be visible to others depending on repository access settings. Ensure the target repository is private if the brief contains sensitive work data (meeting attendees, email subjects, internal project names).
+
+#### Target: custom (future)
+
+Additional delivery targets can be added by extending this skill with a new handler section. Community-contributed targets should follow the same pattern: config field, idempotency check, delivery action, cleanup.
+
+---
+
+### Conversational (terminal)
+Render the brief as formatted markdown text in the terminal. If `locale` is not `en`, translate the output before displaying. Do NOT deliver to any scheduled targets unless the user explicitly says "send it" / "deliver it".
+
+## Instructions
+1. Read `config.json → delivery` (fall back to `[{ "target": "email", "briefs": ["pm", "am", "weekly", "monthly"] }]` if absent).
+2. Filter to targets where current `briefType` is in the target's `briefs` array.
+3. Render templates (HTML for email, Markdown for github-issue).
+4. Execute each target's handler with idempotency check.
+5. Report delivery summary: `✅ email: sent | ✅ github-issue: created #42` or `❌ email: Outlook not running | ✅ github-issue: created #42`.
+6. Clean up all temp files.

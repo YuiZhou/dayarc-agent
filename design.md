@@ -64,7 +64,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 3. SYNTHESIZE classify_activity → infer_priorities → learn_user_profile
              Produce: A."What I Did"(≤15) B."Priorities"(≤5) C."Unfinished"(≤5) + source breadcrumbs
 4. WRITE      daily-profile-{today}.json + run tag
-5. DELIVER    email (scheduled) or terminal (conversational)
+5. DELIVER    deliver to configured targets (email, github-issue, etc.)
 ```
 
 **AM (8 AM):**
@@ -75,7 +75,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 2. READ       daily-profile-{latest} + weekly-current + weekly-prev + monthly
 3. SYNTHESIZE infer_priorities + filter_signals + detect_drift + learning from profile
              Produce: A."Today's Plan"(≤8, 🔴🟡🔵) B."Learning"(3–5) C."Signals"(≤10) D."You May Forget"(≤3)
-4. DELIVER    email or terminal
+4. DELIVER    deliver to configured targets
 ```
 
 **Weekly (Friday 8 PM, after PM):** Pure distillation — no raw data.
@@ -84,7 +84,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 2. SYNTHESIZE summarize_period → learn_user_profile
              Produce: A."Themes"(3–5) B."Accomplishments"(≤8) C."Stuck"(≤5) D."Next Week"(3–5)
 3. WRITE      absorb prev → archive → rotate → write new → purge dailies
-4. DELIVER    email or terminal
+4. DELIVER    deliver to configured targets
 ```
 
 **Monthly (Last Workday, after Weekly):** Pure distillation — no raw data.
@@ -93,7 +93,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 2. SYNTHESIZE summarize_period → learn_user_profile
              Produce: A."Time Allocation" B."Accomplishments"(≤10) C."Stuck" D."Learning" E."Next Month"(3–5)
 3. WRITE      absorb prev month → overwrite monthly → purge old weekly-archive
-4. DELIVER    email or terminal
+4. DELIVER    deliver to configured targets
 ```
 
 **Friday ordering:** PM → Weekly → Monthly (if last workday).
@@ -110,10 +110,32 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 | `summarize_period` | `{ themes[], accomplishments[], stuck[], focus_next[] }` | Weekly/monthly rollup |
 | `parse_reply` | `{ corrections[{ action, target, detail }] }` | Extract corrections from reply text |
 | `dayarc-memory` | Read/write JSON | File I/O for memory directory |
-| `dayarc-deliver` | HTML email or terminal | Render template + send via Outlook COM |
+| `dayarc-deliver` | Delivery summary | Render templates + deliver to configured targets (email, github-issue, etc.) |
 | `dayarc-upgrade` | Status message | Check for / apply agent updates from GitHub |
 | `dayarc-report-issue` | GitHub issue URL | Auto-fill and file bug/feature on Dayarc repo (user confirms) |
 | `dayarc-review-prep` | Terminal output | Generate performance review / 1:1 talking points from 1–6 monthly summaries |
+
+## 4b. Delivery Targets
+
+The DELIVER step is pluggable — briefs can be sent to multiple targets per `config.json → delivery`.
+
+| Target | Format | Mechanism | Idempotency |
+|--------|--------|-----------|-------------|
+| `email` | HTML (`.hbs`) | Outlook COM | Check Sent Items by subject |
+| `github-issue` | Markdown (`.md.hbs`) | `gh issue create` | Hidden marker `<!-- dayarc:brief={type} period={period} -->` |
+
+**Config:**
+```json
+{
+  "delivery": [
+    { "target": "email", "briefs": ["pm", "am", "weekly", "monthly"] },
+    { "target": "github-issue", "briefs": ["weekly"],
+      "config": { "repo": "owner/repo", "labels": ["weekly-brief"] } }
+  ]
+}
+```
+
+Default (no `delivery` field): email-only for all brief types. Targets are independent — partial failures don't block other targets.
 
 ## 5. Memory
 
