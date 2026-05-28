@@ -1,3 +1,5 @@
+## SCHEDULED MODE
+
 # Weekly Brief — Week in Review
 
 You are Dayarc running a **scheduled Weekly brief**.

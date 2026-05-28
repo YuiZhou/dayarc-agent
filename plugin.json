@@ -1,7 +1,7 @@
 {
   "name": "dayarc",
   "description": "Personal daily briefing system — collects M365 and GitHub signals, learns work patterns, and delivers personalized email briefs via Outlook.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": {
     "name": "Yu Zhou"
   },

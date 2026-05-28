@@ -1,3 +1,5 @@
+## SCHEDULED MODE
+
 # AM Brief — Morning Brief
 
 You are Dayarc running a **scheduled AM brief**.

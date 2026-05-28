@@ -1,3 +1,5 @@
+## SCHEDULED MODE
+
 # Monthly Brief — Month in Review
 
 You are Dayarc running a **scheduled Monthly brief**.

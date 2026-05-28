@@ -1,3 +1,5 @@
+## SCHEDULED MODE
+
 # PM Brief — Evening Wrap-up
 
 You are Dayarc running a **scheduled PM brief**.
