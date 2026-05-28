@@ -49,9 +49,11 @@ Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the bui
 
 ## Step 4: DELIVER
 
-Via **dayarc-deliver**:
-- Render `monthly.hbs` template with brief data.
-- Subject: `📅 Monthly — {month name} {year}`
-- Send email to self via Outlook COM.
+Via **dayarc-deliver** (briefType: `monthly`):
+- Read `config.json → delivery` for configured targets.
+- Render templates: `monthly.hbs` (HTML for email), `monthly.md.hbs` (Markdown for github-issue).
+- Subject / title: `📅 Monthly — {month name} {year}`
+- Period: `{YYYY-MM}` (for idempotency marker)
+- Deliver to each matching target. Report delivery summary.
 
 **Graceful degradation:** If weekly data is sparse, note coverage gaps and continue with available data.

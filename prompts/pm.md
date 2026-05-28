@@ -116,11 +116,13 @@ Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the bui
 
 ## Step 5: DELIVER
 
-> ⚠️ **This is the ONLY step that sends email. Never send email in any other step.**
+> ⚠️ **This is the ONLY step that delivers briefs. Never deliver in any other step.**
 
-Via **dayarc-deliver**:
-- Render `pm.hbs` template with brief data.
-- Subject: `🌙 Evening Wrap-up — {today's date}`
-- Send email to self via Outlook COM.
+Via **dayarc-deliver** (briefType: `pm`):
+- Read `config.json → delivery` for configured targets.
+- Render templates: `pm.hbs` (HTML for email), `pm.md.hbs` (Markdown for github-issue).
+- Subject / title: `🌙 Evening Wrap-up — {today's date}`
+- Period: `{YYYY-MM-DD}` (for idempotency marker)
+- Deliver to each matching target. Report delivery summary.
 
 **Graceful degradation:** If any data source fails, note the gap in the brief and continue with available data.

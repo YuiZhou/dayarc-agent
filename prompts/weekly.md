@@ -49,9 +49,11 @@ Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the bui
 
 ## Step 4: DELIVER
 
-Via **dayarc-deliver**:
-- Render `weekly.hbs` template with brief data.
-- Subject: `📊 Weekly — Week of {Monday's date}`
-- Send email to self via Outlook COM.
+Via **dayarc-deliver** (briefType: `weekly`):
+- Read `config.json → delivery` for configured targets.
+- Render templates: `weekly.hbs` (HTML for email), `weekly.md.hbs` (Markdown for github-issue).
+- Subject / title: `📊 Weekly — Week of {Monday's date}`
+- Period: `{YYYY}-W{week-number}` (for idempotency marker)
+- Deliver to each matching target. Report delivery summary.
 
 **Graceful degradation:** If daily profiles are sparse, note coverage gaps and continue with available data.

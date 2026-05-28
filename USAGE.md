@@ -71,7 +71,7 @@ Memory, config, and preferences are already there via OneDrive.
 ~/.copilot/installed-plugins/.../dayarc/  (agent package — via plugin install)
 ├── agents/dayarc.agent.md
 ├── skills/dayarc-*/SKILL.md              12 skill definitions (incl. setup)
-├── skills/dayarc-deliver/templates/      4 HTML email templates
+├── skills/dayarc-deliver/templates/      4 HTML + 4 Markdown brief templates
 ├── prompts/{pm,am,weekly,monthly}.md
 ├── memory-schemas.md
 ├── mcp.json
@@ -247,7 +247,29 @@ copilot --agent=dayarc:dayarc
 > Set up the scheduler
 ```
 
-Scheduled runs are **authoritative**: they send email, write memory, and write run tags. If a scheduled run already completed for a given date+type, it won't re-send (idempotent).
+Scheduled runs are **authoritative**: they deliver to all configured targets (email, GitHub issues, etc.), write memory, and write run tags. If a scheduled run already completed for a given date+type, it won't re-deliver (idempotent).
+
+### Delivery Targets
+
+By default, briefs are sent via email. You can add additional delivery targets in `config.json`:
+
+```json
+{
+  "delivery": [
+    { "target": "email", "briefs": ["pm", "am", "weekly", "monthly"] },
+    { "target": "github-issue", "briefs": ["weekly"],
+      "config": { "repo": "owner/repo", "labels": ["weekly-brief"] } }
+  ]
+}
+```
+
+**Available targets:**
+- `email` — Send HTML email via Outlook COM (default)
+- `github-issue` — Create a GitHub issue with Markdown content via `gh` CLI
+
+Each target is independent — if one fails, others still deliver. The delivery summary reports success/failure per target.
+
+> ⚠️ **Privacy:** GitHub issues may be visible depending on repo settings. Use a private repo for briefs containing sensitive work data.
 
 ### Scheduler vs. Conversational
 

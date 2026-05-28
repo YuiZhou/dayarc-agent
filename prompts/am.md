@@ -114,10 +114,12 @@ Produce brief sections:
 
 ## Step 4: DELIVER
 
-Via **dayarc-deliver**:
-- Render `am.hbs` template with brief data.
-- Subject: `☀️ Morning Brief — {today's date}`
-- Send email to self via Outlook COM.
+Via **dayarc-deliver** (briefType: `am`):
+- Read `config.json → delivery` for configured targets.
+- Render templates: `am.hbs` (HTML for email), `am.md.hbs` (Markdown for github-issue).
+- Subject / title: `☀️ Morning Brief — {today's date}`
+- Period: `{YYYY-MM-DD}` (for idempotency marker)
+- Deliver to each matching target. Report delivery summary.
 - Write `runs/{today}-am.json` run tag via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
 
 **Note:** AM does NOT write a daily profile — only PM writes profiles.
