@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.6] — 2026-05-29
+
+### Fixed
+- `skills/dayarc-deliver/SKILL.md` — `github-issue` target now resolves account context before delivering: it verifies the configured `repo` is reachable under the active `gh` account, switches to a matching logged-in account (by repo owner) when needed, and **fails the target with an error if the repo cannot be resolved** instead of silently redirecting the brief to a different repository. Prevents briefs from being delivered to the wrong repo when `gh` is on a non-matching active account.
+
 ## [Unreleased] — 2026-04-05
 
 ### Added
