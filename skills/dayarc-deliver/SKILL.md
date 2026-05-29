@@ -87,6 +87,38 @@ Creates a GitHub issue with the rendered Markdown brief.
 | `labels` | optional | Array of label names to apply |
 | `assignees` | optional | Array of GitHub usernames to assign |
 
+**Account context (do this FIRST — before idempotency or create):**
+
+`gh` may have multiple authenticated accounts, and the *active* account may not be able to see the configured `repo` (e.g., a private repo owned by a different account). You **must** ensure the active account can resolve the exact configured repo. **Never** redirect delivery to a different repository — if the configured repo cannot be resolved, fail this target with a clear error.
+
+```powershell
+$repo  = "{repo}"                 # exact owner/repo from config — do NOT change it
+$owner = $repo.Split("/")[0]
+
+# 1. Is the configured repo already resolvable under the active account?
+$ok = $false
+gh repo view $repo --json nameWithOwner 2>$null | Out-Null
+if ($LASTEXITCODE -eq 0) { $ok = $true }
+
+# 2. If not, try switching to a logged-in account matching the repo owner, then re-check.
+if (-not $ok) {
+    $accounts = gh auth status 2>&1 | Select-String "account (\S+)" | ForEach-Object { $_.Matches.Groups[1].Value }
+    if ($accounts -contains $owner) {
+        gh auth switch --user $owner 2>&1 | Out-Null
+        gh repo view $repo --json nameWithOwner 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { $ok = $true }
+    }
+}
+
+# 3. Still unresolved → FAIL this target. Do NOT create the issue in any other repo.
+if (-not $ok) {
+    Write-Host "❌ github-issue: cannot resolve configured repo '$repo' under any logged-in account — skipping (run 'gh auth login' for owner '$owner')"
+    # skip this target, continue with others
+}
+```
+
+> ⚠️ The configured `repo` is authoritative. If it doesn't resolve, the correct outcome is a **failed target with an error**, not a fallback to a repo that happens to be visible. Silently delivering a brief to the wrong repository is a privacy and correctness bug.
+
 **Idempotency:** Before creating, search for an existing issue with the same idempotency marker:
 ```powershell
 $marker = "<!-- dayarc:brief={briefType} period={period} -->"
@@ -135,6 +167,6 @@ Render the brief as formatted markdown text in the terminal. If `locale` is not 
 1. Read `config.json → delivery` (fall back to `[{ "target": "email", "briefs": ["pm", "am", "weekly", "monthly"] }]` if absent).
 2. Filter to targets where current `briefType` is in the target's `briefs` array.
 3. Render templates (HTML for email, Markdown for github-issue).
-4. Execute each target's handler with idempotency check.
+4. Execute each target's handler with idempotency check. For `github-issue`, first ensure the active `gh` account can resolve the configured repo (switch to a matching logged-in account if needed); if it cannot be resolved, fail that target with an error — never deliver to a different repo.
 5. Report delivery summary: `✅ email: sent | ✅ github-issue: created #42` or `❌ email: Outlook not running | ✅ github-issue: created #42`.
 6. Clean up all temp files.
