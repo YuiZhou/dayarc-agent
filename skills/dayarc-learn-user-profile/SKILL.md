@@ -16,7 +16,8 @@ Updated DailyProfile JSON — see memory-schemas.md for exact schema.
 4. Update learning_interests: detect topics from content (blog links, docs, exploratory code), set trajectory.
 5. Update key_contacts: increment interaction_count for people in today's signals.
 6. Update active_threads: add new, update status, increment days_open.
-7. Set priorities_today from infer_priorities output.
-8. Set unfinished from items lacking completion signal. Each must have source_breadcrumb.
-9. Bootstrap: if no previous profile, build fresh from today's signals.
-10. VALIDATE output against memory-schemas.md before returning.
+7. Set `impact_summaries` from the **dayarc-write-impact-summary** output. Preserve its evidence breadcrumbs.
+8. Set priorities_today from infer_priorities output.
+9. Set unfinished from items lacking completion signal. Each must have source_breadcrumb.
+10. Bootstrap: if no previous profile, build fresh from today's signals.
+11. VALIDATE output against memory-schemas.md before returning.

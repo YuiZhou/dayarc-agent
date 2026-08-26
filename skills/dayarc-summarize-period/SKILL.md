@@ -25,3 +25,5 @@ For weekly: all daily profiles + previous weekly. For monthly: all weekly summar
 6. If previous summary provided, absorb unresolved items into absorbed_from_previous.
 7. **Weekly only — aggregate brief quality:** Scan the `feedback` field across all input daily profiles. For each profile with a `feedback` entry, tally `rated` (count), `positive` (count where `sentiment == "positive"`), `negative` (count where `sentiment == "negative"`), and collect all distinct negative `detail` strings into `themes`. Emit as `brief_quality: { rated, positive, negative, themes }`. If no daily profiles had a `feedback` field, omit `brief_quality`.
 8. **Monthly only — roll up brief quality:** Sum `rated`, `positive`, and `negative` across all input weekly `brief_quality` fields. Merge `themes` arrays and deduplicate. Emit as `brief_quality`. If no weekly summaries had `brief_quality`, omit the field.
+9. Preserve the input periods' `impact_summaries` as evidence for **dayarc-write-impact-summary**. Do not flatten
+   them into generic accomplishment bullets or invent impact here; the shared impact skill performs that synthesis.

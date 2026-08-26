@@ -53,11 +53,13 @@ Then stop.
 Analyze the selected monthly summaries and produce the following sections. Deduplicate items that appear in multiple months. Where applicable, note month-over-month changes.
 
 #### A. Key Accomplishments
-- Pull from `accomplishments` across all selected months.
+- Prefer structured `impact_summaries` across all selected months. Fall back to `accomplishments` for older memory
+  files that do not contain impact summaries.
 - Deduplicate: if the same item appears in multiple months, keep it once (in the month it was first completed).
 - Group by theme (e.g., "Infrastructure", "Team/Process", "Product/Feature").
 - Maximum 10 items total.
-- Format: `• {accomplishment}` — include source context where available (e.g., PR number, project name).
+- Format each item as an outcome-led statement using its action, result, and impact. Include source context where
+  available.
 
 #### B. Impact Areas
 - Pull from `time_allocation` across all selected months.
@@ -89,6 +91,7 @@ Analyze the selected monthly summaries and produce the following sections. Dedup
 - Write 5–7 crisp one-liners suitable for a review document or verbal summary.
 - Each should be a complete, impactful sentence that stands alone.
 - Draw from accomplishments, impact, and growth — not from blockers.
+- Reuse the evidence and wording from monthly `impact_summaries`; do not infer unsupported metrics or outcomes.
 - Format: numbered list.
 - Example: `1. Drove the authentication migration from design to production, reducing login latency by X%.`
 

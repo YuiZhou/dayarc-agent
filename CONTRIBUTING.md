@@ -8,7 +8,7 @@ This project contains **no code** — only markdown definitions consumed by Copi
 
 ```
 agents/           Agent profile (dayarc.agent.md)
-skills/           11 skill definitions (SKILL.md files)
+skills/           16 skill definitions (SKILL.md files)
 prompts/          4 plan prompts (pm.md, am.md, weekly.md, monthly.md)
 memory-schemas.md Memory file schema reference
 mcp.json          MCP server configuration
@@ -25,7 +25,8 @@ Each skill is a `SKILL.md` file under `skills/dayarc-*/`. Skills define input, o
 Plan prompts in `prompts/` are step-by-step instructions the agent follows during scheduled runs.
 
 ### Editing templates
-HTML email templates are Handlebars (`.hbs`) files in `skills/dayarc-deliver/templates/`.
+HTML email and Markdown delivery templates are Handlebars (`.hbs`) files in
+`skills/dayarc-deliver/templates/`.
 
 ### Testing changes
 Test by running Copilot CLI with Dayarc:

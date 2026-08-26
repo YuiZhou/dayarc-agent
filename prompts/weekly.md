@@ -30,11 +30,15 @@ Handle missing files gracefully (bootstrap).
 
 Run skills in this order:
 1. **summarize_period** — roll up all daily profiles into a weekly summary. If weekly-summary-prev exists, absorb its unresolved stuck items.
-2. **learn_user_profile** — update profile with the week's accumulated learning.
+2. **write_impact_summary** — synthesize daily `impact_summaries`, themes, and accomplishments into 2–5 weekly
+   Situation-Task-Action-Result-Impact narratives. Describe the week's larger outcomes rather than concatenating
+   daily entries.
+3. **learn_user_profile** — update profile with the week's accumulated learning.
 
 Produce brief sections:
 - **A. Themes** — 3–5 work themes with effort_share (sum ~1.0) and progress notes.
-- **B. Accomplishments** — ≤8 completed items (merged PRs, resolved threads, milestones). Deduplicate.
+- **B. Impact Highlights** — 2–5 evidence-backed impact summaries. Preserve source breadcrumbs and omit unsupported
+  results or impact.
 - **C. Stuck** — ≤5 items unfinished for 2+ days, with days_carried count.
 - **D. Next Week** — 3–5 suggested focus areas from momentum + carryover + stuck.
 
@@ -43,7 +47,7 @@ Produce brief sections:
 Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool), execute in this exact order:
 1. If `weekly-summary-prev.json` exists, archive it to `weekly-archive/week-{date}.json`.
 2. If `weekly-summary-current.json` exists, move it to `weekly-summary-prev.json`.
-3. Write new `weekly-summary-current.json` with this week's summary.
+3. Write new `weekly-summary-current.json` with this week's summary, including `impact_summaries`.
 4. Delete all files in `daily/` (purge daily profiles — they're now absorbed into weekly).
 5. Write `runs/{today}-weekly.json` run tag.
 
@@ -54,6 +58,7 @@ Via **dayarc-deliver** (briefType: `weekly`):
 - Render templates: `weekly.hbs` (HTML for email), `weekly.md.hbs` (Markdown for github-issue).
 - Subject / title: `📊 Weekly — Week of {Monday's date}`
 - Period: `{YYYY}-W{week-number}` (for idempotency marker)
+- Template data: pass the weekly narratives as `impact_summaries`.
 - Deliver to each matching target. Report delivery summary.
 
 **Graceful degradation:** If daily profiles are sparse, note coverage gaps and continue with available data.

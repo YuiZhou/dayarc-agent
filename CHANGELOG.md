@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased] — 2026-07-21
+
+### Added
+- `dayarc-write-impact-summary` — shared evidence-backed Situation-Task-Action-Result-Impact synthesis for daily,
+  weekly, and monthly briefs.
+- Layered memory now carries `impact_summaries` from daily profiles into weekly and monthly summaries.
+
+### Changed
+- PM, weekly, and monthly briefs now lead with outcome and impact narratives instead of activity/accomplishment-only
+  lists. Existing activity and accomplishment fields remain as backward-compatible evidence and template fallbacks.
+- Review prep now prefers structured monthly impact summaries when generating self-assessment talking points.
+- Reply corrections now resolve the original brief period and update matching daily, weekly, or monthly impact
+  narratives without overwriting stronger evidence-backed results.
+
 ## [0.1.6] — 2026-05-29
 
 ### Fixed

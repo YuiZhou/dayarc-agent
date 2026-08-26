@@ -29,7 +29,7 @@ Too much noise across Outlook, Teams, GitHub, and SharePoint. No single view of 
 ## 3. Goals & Non-Goals
 
 **Goals:**
-- **G1.** PM brief (8 PM, Mon–Fri): what I did, priorities, unfinished. Side-effect: learn focus/interests.
+- **G1.** PM brief (8 PM, Mon–Fri): evidence-backed impact highlights, priorities, unfinished. Side-effect: learn focus/interests.
 - **G2.** AM brief (8 AM, Mon–Fri): today's plan, learning recs, filtered signals, drift alerts.
 - **G3.** Weekly report (Friday PM): themes, accomplishments, stuck items, next-week focus.
 - **G4.** Monthly report (last workday): time allocation, trends, learning progress, next-month outlook.
@@ -42,7 +42,7 @@ Too much noise across Outlook, Teams, GitHub, and SharePoint. No single view of 
 
 ## 4. Scenarios
 
-1. **Evening wrap-up** — PM brief: grouped activities, priorities, unfinished items.
+1. **Evening wrap-up** — PM brief: STAR-style impact highlights, priorities, unfinished items.
 2. **Morning planning** — AM brief: action items, learning topics, filtered signals, drift alerts.
 3. **Focus shift** — PM detects new themes in outgoing signals; AM adapts filtering next morning.
 4. **Monday catch-up** — AM lookback extends to cover Sat + Sun.
@@ -74,8 +74,10 @@ All read-only, under my own M365 / GitHub identity. No full message bodies store
 
 **Actionability rule (applies to all briefs):** Every item must describe *what* it is and include a source breadcrumb (link, thread subject, or channel). No opaque reminders.
 
-### A. "What I Did Today"
-Activities grouped by theme. One sentence per bullet. **Max 15.**
+### A. "Impact Highlights"
+Related signals are synthesized into **2–5 concise Situation-Task-Action-Result-Impact narratives**. Results and
+impact are included only when supported by evidence; otherwise the item describes concrete progress and remains
+in-progress. Every narrative retains source breadcrumbs.
 
 ### B. "My Priorities Today"
 Rank order: **Outlook flags / Teams saves** → high-effort activities → meetings attended. **Max 5.**
@@ -119,7 +121,7 @@ Reads weekly + monthly summaries every morning. Surfaces priorities with **no ma
 Summarized from the week's daily reports — not from raw data.
 
 - **A. "This Week's Themes"** — Top 3–5 workstreams by effort, one-line progress each.
-- **B. "Accomplishments"** — PRs merged, threads resolved, milestones hit. **Max 8.**
+- **B. "Impact Highlights"** — 2–5 weekly outcome narratives synthesized from daily impact summaries.
 - **C. "Stuck / Recurring Carryovers"** — Items unfinished on **2+ days**. **Max 5.**
 - **D. "Next Week's Suggested Focus"** — 3–5 priorities from momentum, carryovers, calendar.
 - **E. Weekly Memory Update** *(hidden)* — Snapshots into weekly memory layer.
@@ -131,7 +133,7 @@ Summarized from the week's daily reports — not from raw data.
 Summarized from the month's weekly reports — not from raw data or dailies.
 
 - **A. "Where My Time Went"** — Focus area breakdown: effort share, what grew/shrank/appeared/dropped.
-- **B. "Key Accomplishments"** — Deduplicated roll-up from weeklies. **Max 10.**
+- **B. "Impact Highlights"** — 3–6 monthly outcome narratives synthesized and deduplicated from weeklies.
 - **C. "Persistently Stuck"** — Items stuck **2+ weeks**.
 - **D. "Learning Progress"** — Trajectory (growing / plateaued / dropped), go deeper or let go.
 - **E. "Next Month's Outlook"** — 3–5 strategic priorities from trends + calendar.
@@ -153,7 +155,8 @@ Communication between briefs only through shared memory files — never by calli
 - **Weekly** absorbs previous weekly's unresolved items before discarding it.
 - **Monthly** absorbs previous monthly's trends before discarding it.
 - AM reads **all three layers every morning** for planning, filtering, and drift detection.
-- **Memory corrections** (see §11) update the daily profile only; changes propagate to weekly/monthly through the distillation chain.
+- **Memory corrections** (see §11) update the period represented by the request or replied-to brief, including
+  matching impact narratives. Daily changes propagate through the normal distillation chain.
 
 All layers: human-readable JSON, manually overridable.
 **Bootstrap:** empty → AM shows all signals unfiltered; first PM/Friday/month-end builds each layer.
@@ -169,7 +172,10 @@ Two ways to correct the agent's understanding:
 **B. Email reply (P1):** Reply to any brief email with corrections. Agent searches inbox for replies matching brief subject patterns (`RE: ☀️ Morning Brief`, etc.) at the start of each scheduled run, parses explicit corrections, and updates the daily profile before proceeding.
 
 **Rules:**
-- Both methods update the **daily profile** only. Changes propagate to weekly/monthly through the distillation chain.
+- Conversational corrections default to the latest daily profile unless the user names a period.
+- Email replies update the exact daily, weekly, or monthly memory represented by the original brief subject.
+- New priorities and quality feedback are always written to the latest daily profile.
+- Daily changes propagate to weekly/monthly through the distillation chain.
 - Non-actionable input ("thanks", "looks good") → ignored.
 - Reply content not stored beyond the memory update.
 
@@ -225,6 +231,6 @@ Three layers with different portability:
 |--------|--------|
 | Read time | < 5 min per brief |
 | Relevance precision | ≥ 80% of AM signals feel relevant (after 2 weeks) |
-| Coverage | No consistently missed items in PM "What I Did" (after 1 week) |
+| Coverage | No consistently missed meaningful outcomes in PM "Impact Highlights" (after 1 week) |
 | Focus accuracy | Learned focus ≈ self-reported (after 1 week) |
 | Write violations | Zero |

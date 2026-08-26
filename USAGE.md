@@ -70,7 +70,7 @@ Memory, config, and preferences are already there via OneDrive.
 ```
 ~/.copilot/installed-plugins/.../dayarc/  (agent package — via plugin install)
 ├── agents/dayarc.agent.md
-├── skills/dayarc-*/SKILL.md              12 skill definitions (incl. setup)
+├── skills/dayarc-*/SKILL.md              16 skill definitions (incl. impact narrative)
 ├── skills/dayarc-deliver/templates/      4 HTML + 4 Markdown brief templates
 ├── prompts/{pm,am,weekly,monthly}.md
 ├── memory-schemas.md
@@ -171,7 +171,9 @@ The agent learns from your PM briefs. If it gets something wrong, correct it:
 > I didn't actually work on the dashboard today, remove it
 ```
 
-Corrections update your **daily profile only**. Changes propagate to weekly and monthly summaries through the normal distillation chain.
+Conversational corrections default to your latest daily profile. Email replies update the exact daily, weekly, or
+monthly memory represented by the original brief; new priorities and quality feedback remain in the latest daily
+profile.
 
 You can also correct by **replying to a brief email** — the next brief run will parse your reply and apply corrections automatically.
 
@@ -287,10 +289,10 @@ Each target is independent — if one fails, others still deliver. The delivery 
 
 | Brief | When | Sections | Max length |
 |-------|------|----------|------------|
-| **PM** (Evening Wrap-up) | 8 PM Mon–Fri | What I Did (≤15), Priorities (≤5), Unfinished (≤5) | ~1 page / 750 words |
+| **PM** (Evening Wrap-up) | 8 PM Mon–Fri | Impact Highlights (2–5), Priorities (≤5), Unfinished (≤5) | ~1 page / 750 words |
 | **AM** (Morning Brief) | 8 AM Mon–Fri | Today's Plan (≤8), Learning (3–5), Signals (≤10), You May Forget (≤3) | ~1 page / 750 words |
-| **Weekly** | Friday 8 PM | Themes (3–5), Accomplishments (≤8), Stuck (≤5), Next Week (3–5) | ~2 pages |
-| **Monthly** | Last workday | Time Allocation, Accomplishments (≤10), Stuck, Learning, Next Month (3–5) | ~2 pages |
+| **Weekly** | Friday 8 PM | Themes (3–5), Impact Highlights (2–5), Stuck (≤5), Next Week (3–5) | ~2 pages |
+| **Monthly** | Last workday | Time Allocation, Impact Highlights (3–6), Stuck, Learning, Next Month (3–5) | ~2 pages |
 
 ---
 

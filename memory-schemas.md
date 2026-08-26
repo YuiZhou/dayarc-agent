@@ -54,6 +54,18 @@
       "days_open": 3
     }
   ],
+  "impact_summaries": [
+    {
+      "title": "Hardened GitHub brief delivery",
+      "situation": "Brief delivery could resolve the wrong repository when another GitHub account was active.",
+      "task": "Make repository selection authoritative across multi-account environments.",
+      "action": "Added account-aware repository resolution and explicit failure for unavailable repositories.",
+      "result": "Briefs now stop instead of being redirected to a different repository.",
+      "impact": "Protects private work summaries from being delivered to the wrong audience.",
+      "status": "completed",
+      "source_breadcrumbs": ["github.com/owner/repo/pull/123"]
+    }
+  ],
   "priorities_today": [
     {
       "description": "Review auth token refresh PR",
@@ -83,6 +95,7 @@
 | `learning_interests` | array | ✅ | Topics the user is learning. Trajectory: "rising", "steady", "declining". |
 | `key_contacts` | array | ✅ | People interacted with. Increment interaction_count per signal. |
 | `active_threads` | array | ✅ | Open work items. Status: "in_progress", "waiting", "blocked". Increment days_open daily. |
+| `impact_summaries` | array | Optional | 2–5 evidence-backed STAR-style narratives generated from the day's related signals. Required for newly written profiles; optional for backward compatibility. |
 | `priorities_today` | array | ✅ | From infer_priorities output. |
 | `unfinished` | array | ✅ | Items lacking completion signal. Each needs source_breadcrumb. |
 | `feedback` | object | Optional | Quality signal from user's reply: `{ sentiment: "positive"\|"negative", detail: string }`. Written by parse_reply (Step 0) when a quality signal is detected; omitted if reply contained no quality signal. |
@@ -108,6 +121,18 @@
   "accomplishments": [
     "Merged PR #1234 — token refresh implementation",
     "Resolved flaky ARM CI pipeline"
+  ],
+  "impact_summaries": [
+    {
+      "title": "Completed token refresh rollout",
+      "situation": "Authentication sessions needed a safer refresh path.",
+      "task": "Finish and validate the token refresh implementation.",
+      "action": "Implemented the refresh flow, addressed review feedback, and merged the change.",
+      "result": "The token refresh path was merged and ready for rollout.",
+      "impact": "Removes a blocker for the broader authentication migration.",
+      "status": "completed",
+      "source_breadcrumbs": ["github.com/org/repo/pull/1234"]
+    }
   ],
   "stuck_items": [
     {
@@ -138,6 +163,7 @@
 | `week_of` | string (YYYY-MM-DD) | ✅ | Monday of the week |
 | `themes` | array | ✅ | Work themes with effort_share (sum ~1.0) and progress narrative. |
 | `accomplishments` | array | ✅ | Completed items. Deduplicated across days. |
+| `impact_summaries` | array | Optional | 2–5 weekly narratives synthesized from daily impact summaries. Required for newly written summaries; optional for older memory. |
 | `stuck_items` | array | ✅ | Unfinished 2+ days. days_carried = count of days item appeared. |
 | `suggested_focus_next_week` | array | ✅ | 3–5 suggestions from momentum + stuck. |
 | `absorbed_from_previous` | array | Optional | Unresolved items absorbed from previous week's summary. |
@@ -164,6 +190,18 @@
   "accomplishments": [
     "Shipped auth token refresh (PR #1234)",
     "Launched weekly team sync cadence"
+  ],
+  "impact_summaries": [
+    {
+      "title": "Advanced the authentication migration",
+      "situation": "Authentication modernization remained the month's primary delivery goal.",
+      "task": "Move token refresh and session management toward production readiness.",
+      "action": "Shipped token refresh and started the session-management rollout.",
+      "result": "One migration milestone shipped and the next entered rollout.",
+      "impact": "Reduced remaining scope and created momentum toward completing the migration.",
+      "status": "advanced",
+      "source_breadcrumbs": ["github.com/org/repo/pull/1234", "Auth migration planning thread"]
+    }
   ],
   "persistently_stuck": [
     {
@@ -201,6 +239,7 @@
 | `month` | string (YYYY-MM) | ✅ | Month identifier |
 | `time_allocation` | array | ✅ | Top themes with share and trend (↑/→/↓). |
 | `accomplishments` | array | ✅ | ≤10 items. Deduplicated across weeks. |
+| `impact_summaries` | array | Optional | 3–6 monthly narratives synthesized from weekly impact summaries. Required for newly written summaries; optional for older memory and archives. |
 | `persistently_stuck` | array | ✅ | Items stuck 2+ weeks. weeks_stuck = count. |
 | `learning_progress` | array | ✅ | Topics with trajectory and recommendation. |
 | `outlook_next_month` | array | ✅ | 3–5 focus areas. |
