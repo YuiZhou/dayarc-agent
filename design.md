@@ -9,9 +9,9 @@ Copilot CLI is the agent. Three portable layers:
 ```
 Agent Package (installed)                      User Data ~/Documents/dayarc/ (portable, OneDrive-synced)
 ┌──────────────────────────────────┐           ┌──────────────────────────────┐
-│  skills/       11 skill defs     │           │  memory/    JSON files       │
+│  skills/       16 skill defs     │           │  memory/    JSON files       │
 │  prompts/      4 plan files      │           │  config.json identity+prefs  │
-│  templates/    4 HTML templates  │           └──────────────────────────────┘
+│  templates/    8 brief templates │           └──────────────────────────────┘
 │  memory-schemas.md               │
 │  mcp.json      signal connectors │           Scheduler (optional, machine-specific)
 │  docs/         connector guides  │           scheduler.ps1 + OS task registration
@@ -61,8 +61,8 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 0. CHECK REPLIES  Parse brief reply corrections → update daily profile
 1. COLLECT    Work IQ (sent, Teams sent, flagged, saved, meetings, docs) + GitHub (commits, PRs, issues, reviews)
 2. READ       daily-profile-{prev-date} (skip on bootstrap)
-3. SYNTHESIZE classify_activity → infer_priorities → learn_user_profile
-             Produce: A."What I Did"(≤15) B."Priorities"(≤5) C."Unfinished"(≤5) + source breadcrumbs
+3. SYNTHESIZE classify_activity → infer_priorities → write_impact_summary → learn_user_profile
+             Produce: A."Impact Highlights"(2–5) B."Priorities"(≤5) C."Unfinished"(≤5) + source breadcrumbs
 4. WRITE      daily-profile-{today}.json + run tag
 5. DELIVER    deliver to configured targets (email, github-issue, etc.)
 ```
@@ -81,17 +81,17 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 **Weekly (Friday 8 PM, after PM):** Pure distillation — no raw data.
 ```
 1. READ       all 5 dailies + weekly-prev + monthly
-2. SYNTHESIZE summarize_period → learn_user_profile
-             Produce: A."Themes"(3–5) B."Accomplishments"(≤8) C."Stuck"(≤5) D."Next Week"(3–5)
+2. SYNTHESIZE summarize_period → write_impact_summary → learn_user_profile
+             Produce: A."Themes"(3–5) B."Impact Highlights"(2–5) C."Stuck"(≤5) D."Next Week"(3–5)
 3. WRITE      absorb prev → archive → rotate → write new → purge dailies
 4. DELIVER    deliver to configured targets
 ```
 
 **Monthly (Last Workday, after Weekly):** Pure distillation — no raw data.
 ```
-1. READ       weekly-archive/ + weekly-current + prev monthly
-2. SYNTHESIZE summarize_period → learn_user_profile
-             Produce: A."Time Allocation" B."Accomplishments"(≤10) C."Stuck" D."Learning" E."Next Month"(3–5)
+1. READ       weekly-archive/ + weekly-current + weekly-prev + prev monthly
+2. SYNTHESIZE summarize_period → write_impact_summary → learn_user_profile
+             Produce: A."Time Allocation" B."Impact Highlights"(3–6) C."Stuck" D."Learning" E."Next Month"(3–5)
 3. WRITE      absorb prev month → overwrite monthly → purge old weekly-archive
 4. DELIVER    deliver to configured targets
 ```
@@ -109,6 +109,7 @@ PM/AM begin with **Step 0: CHECK REPLIES** — parse email reply corrections →
 | `detect_drift` | `{ alerts[{ priority, days_inactive, suggestion }] }` | Priorities inactive 2+ days |
 | `summarize_period` | `{ themes[], accomplishments[], stuck[], focus_next[] }` | Weekly/monthly rollup |
 | `parse_reply` | `{ corrections[{ action, target, detail }] }` | Extract corrections from reply text |
+| `write_impact_summary` | `{ impact_summaries[{ situation, task, action, result, impact }] }` | Turn evidence into STAR-style outcome narratives |
 | `dayarc-memory` | Read/write JSON | File I/O for memory directory |
 | `dayarc-deliver` | Delivery summary | Render templates + deliver to configured targets (email, github-issue, etc.) |
 | `dayarc-upgrade` | Status message | Check for / apply agent updates from GitHub |
@@ -151,13 +152,15 @@ monthly-archive/                        # Up to 6 months (for review prep)
 runs/{date}-{type}.json                 # Idempotency (scheduled only)
 ```
 
-**Daily** — `focus_areas[{label, confidence, last_seen}]`, `learning_interests[{topic, trajectory, first_seen}]`, `key_contacts[{name, email, interaction_count}]`, `active_threads[{id, description, status, days_open}]`, `priorities_today[]`, `unfinished[]`
+**Daily** — `focus_areas[{label, confidence, last_seen}]`, `learning_interests[{topic, trajectory, first_seen}]`, `key_contacts[{name, email, interaction_count}]`, `active_threads[{id, description, status, days_open}]`, `impact_summaries[]`, `priorities_today[]`, `unfinished[]`
 
-**Weekly** — `themes[{label, effort_share, progress}]`, `accomplishments[]`, `stuck_items[{description, days_carried}]`, `suggested_focus_next_week[]`, `absorbed_from_previous[]`
+**Weekly** — `themes[{label, effort_share, progress}]`, `accomplishments[]`, `impact_summaries[]`, `stuck_items[{description, days_carried}]`, `suggested_focus_next_week[]`, `absorbed_from_previous[]`
 
-**Monthly** — `time_allocation[{area, share, trend}]`, `accomplishments[]`, `persistently_stuck[{description, weeks_stuck}]`, `learning_progress[{topic, trajectory, recommendation}]`, `outlook_next_month[]`, `absorbed_from_previous[]`. Archived to `monthly-archive/{YYYY-MM}.json`; up to 6 months retained for **review prep**.
+**Monthly** — `time_allocation[{area, share, trend}]`, `accomplishments[]`, `impact_summaries[]`, `persistently_stuck[{description, weeks_stuck}]`, `learning_progress[{topic, trajectory, recommendation}]`, `outlook_next_month[]`, `absorbed_from_previous[]`. Archived to `monthly-archive/{YYYY-MM}.json`; up to 6 months retained for **review prep**.
 
-**Memory correction** — Conversation ("mark X as done") or email reply (Step 0). Both update daily profile only; propagates through distillation.
+**Memory correction** — Conversation defaults to the latest daily profile unless a period is named. Email replies
+update the exact daily, weekly, or monthly memory represented by the original brief; priorities and quality feedback
+remain daily-only.
 
 ## 6. Scheduler (Optional)
 

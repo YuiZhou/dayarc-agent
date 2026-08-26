@@ -20,20 +20,26 @@ Follow steps in order. Do not skip steps. Read memory-schemas.md before writing 
 Via **dayarc-memory**, read:
 - All files in `weekly-archive/` directory
 - `weekly-summary-current.json`
+- `weekly-summary-prev.json` (if its `week_of` belongs to the month being summarized)
 - `monthly-summary.json` (previous month — if exists)
 - All files in `monthly-archive/` directory (for absorbed_from_previous context)
 
 Handle missing files gracefully (bootstrap).
+Deduplicate weekly inputs by `week_of`; the scheduler may leave the same period reachable through rotation or
+archive paths.
 
 ## Step 2: SYNTHESIZE
 
 Run skills in this order:
 1. **summarize_period** — roll up all weekly summaries into a monthly summary. If previous monthly exists, absorb its unresolved stuck items.
-2. **learn_user_profile** — update profile with the month's accumulated learning.
+2. **write_impact_summary** — synthesize weekly `impact_summaries`, themes, and accomplishments into 3–6 monthly
+   Situation-Task-Action-Result-Impact narratives. Emphasize outcomes, decisions, risks reduced, and people or
+   delivery unblocked when the evidence supports those claims.
+3. **learn_user_profile** — update profile with the month's accumulated learning.
 
 Produce brief sections:
 - **A. Time Allocation** — top themes with effort share and trend (↑ increasing, → steady, ↓ decreasing).
-- **B. Accomplishments** — ≤10 completed items across the month. Deduplicate across weeks.
+- **B. Impact Highlights** — 3–6 evidence-backed impact summaries across the month. Deduplicate across weeks.
 - **C. Persistently Stuck** — items stuck for 2+ weeks, with weeks_stuck count.
 - **D. Learning Progress** — topics tracked across the month with trajectory and recommendation.
 - **E. Next Month** — 3–5 outlook items from momentum + carryover + stuck.
@@ -42,7 +48,7 @@ Produce brief sections:
 
 Via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool), execute in this exact order:
 1. If `monthly-summary.json` exists, it is the previous month — absorb its unresolved items into the new summary, then archive it to `monthly-archive/{YYYY-MM}.json` (using the `month` field of the existing summary as the filename, e.g., `monthly-archive/2026-03.json`).
-2. Overwrite `monthly-summary.json` with this month's summary.
+2. Overwrite `monthly-summary.json` with this month's summary, including `impact_summaries`.
 3. Delete all files in `weekly-archive/` older than current month (keep current month's archives).
 4. Delete all files in `monthly-archive/` older than 6 months from today (keep the 6 most recent archived months).
 5. Write `runs/{today}-monthly.json` run tag.
@@ -54,6 +60,7 @@ Via **dayarc-deliver** (briefType: `monthly`):
 - Render templates: `monthly.hbs` (HTML for email), `monthly.md.hbs` (Markdown for github-issue).
 - Subject / title: `📅 Monthly — {month name} {year}`
 - Period: `{YYYY-MM}` (for idempotency marker)
+- Template data: pass the monthly narratives as `impact_summaries`.
 - Deliver to each matching target. Report delivery summary.
 
 **Graceful degradation:** If weekly data is sparse, note coverage gaps and continue with available data.

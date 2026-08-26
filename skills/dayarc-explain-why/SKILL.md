@@ -47,18 +47,22 @@ Search the following memory files in order, stopping as soon as the item is foun
    - `priorities_today[].description` + `priorities_today[].source_breadcrumb` (produced by `infer_priorities`)
    - `unfinished[].description` + `unfinished[].source_breadcrumb` (produced by `learn_user_profile`)
    - `active_threads[].subject` + `active_threads[].source_breadcrumb`
+   - `impact_summaries[]` across `title`, `situation`, `task`, `action`, `result`, and `impact`, plus
+     `source_breadcrumbs[]` (produced by `write_impact_summary`)
 
 2. **`weekly-summary-current.json`** — check:
    - `themes[].label` + any breadcrumbs stored under activities for that theme
    - `stuck[].description` + `stuck[].source_breadcrumb`
+   - `impact_summaries[]` + `source_breadcrumbs[]`
 
 3. **`monthly-summary.json`** — check:
    - `themes[].label` + activity breadcrumbs
    - `stuck[].description` + `stuck[].source_breadcrumb`
+   - `impact_summaries[]` + `source_breadcrumbs[]`
 
 4. **Recent daily profiles** — if today's profile has no match, try the previous 3 days:
    `daily/daily-profile-{yesterday}.json`, `{day-2}.json`, `{day-3}.json`.
-   In each, check `priorities_today`, `unfinished`, and `active_threads` as above.
+   In each, check `priorities_today`, `unfinished`, `active_threads`, and `impact_summaries` as above.
 
 ### Step 3 — If item not found in memory
 
@@ -72,6 +76,8 @@ Once the item is found, render all available source fields:
 
 - **For priorities** (`infer_priorities` output): show `source_breadcrumb` and `urgency`.
 - **For activities** (`classify_activity` output): show `source_breadcrumb` per activity in the theme cluster.
+- **For impact summaries** (`write_impact_summary` output): show all `source_breadcrumbs` and identify the matching
+  situation, task, action, result, or impact field.
 - **For drift alerts** (`detect_drift` output): show `source_breadcrumb` (the priority that was neglected) and `days_inactive`.
 - **For signals** (`filter_signals` output): show `source_breadcrumb`, `relevance`, and `pass_reason`.
 

@@ -55,8 +55,8 @@ All briefs include source breadcrumbs (links, thread subjects, channel names) fo
 ```
 ~/.copilot/installed-plugins/.../dayarc/    (agent package — via plugin install)
 ├── agents/dayarc.agent.md              Agent identity + rules
-├── skills/dayarc-*/SKILL.md            12 skill definitions (incl. setup)
-├── skills/dayarc-deliver/templates/    4 HTML email templates
+├── skills/dayarc-*/SKILL.md            16 skill definitions (incl. impact narrative)
+├── skills/dayarc-deliver/templates/    4 HTML + 4 Markdown brief templates
 ├── prompts/{pm,am,weekly,monthly}.md     Plan instructions
 ├── memory-schemas.md                     Memory file schemas
 ├── mcp.json                              Work IQ + GitHub MCP servers

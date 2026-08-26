@@ -1,13 +1,28 @@
 # 🌙 Evening Wrap-up — {{date}}
 
-## 📋 What I Did
+## 🌟 Impact Highlights
 
+{{#if impact_summaries.length}}
+{{#each impact_summaries}}
+### {{this.title}}
+
+- **Status:** {{this.status}}
+- **Situation:** {{this.situation}}
+- **Task:** {{this.task}}
+- **Action:** {{this.action}}
+{{#if this.result}}- **Result:** {{this.result}}
+{{/if}}{{#if this.impact}}- **Impact:** {{this.impact}}
+{{/if}}- **Evidence:** {{#each this.source_breadcrumbs}}{{this}}{{#unless @last}} · {{/unless}}{{/each}}
+
+{{/each}}
+{{else}}
 {{#if activities.length}}
 {{#each activities}}
 - {{this.description}} {{#if this.source_breadcrumb}}_({{this.source_breadcrumb}})_{{/if}}
 {{/each}}
 {{else}}
-_No activities recorded._
+_No impact highlights recorded._
+{{/if}}
 {{/if}}
 
 ## 🎯 Tomorrow's Priorities

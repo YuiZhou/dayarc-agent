@@ -29,14 +29,47 @@ Collect both sets and pass each to Step 0c.
 
 **0c. Process each email found:**
 1. Use **parse_reply** skill to analyze the full email body in natural language. Pass the **full raw email body** (including any HTML) — the skill handles HTML stripping, quoted-text removal, and signature removal automatically before extracting intent.
-2. If the parsed result contains corrections, read the latest daily profile via **dayarc-memory**.
-3. For each correction in the `parse_reply` output, apply the corresponding profile update. The `action` field in each correction (produced by parse_reply's NL analysis, not by the user) determines what to change:
-   - `mark_done` → find the matching item in `active_threads` (by keyword overlap on `description`) and set `status` to `"done"`; remove matching entries from `priorities_today` and `unfinished`.
-   - `remove` → remove the matching item from `priorities_today` and `unfinished` arrays; if found in `active_threads`, set `status` to `"dropped"`.
-   - `add_priority` → append a new entry to `priorities_today`: `description` = correction target, `urgency` = `"🟡 soon"`, `source_breadcrumb` = `"User reply"` (or `"Self-memo"` for self-sent emails).
-   - `correct` → find the matching item across `priorities_today`, `unfinished`, and `active_threads` and update its `description` with the corrected value.
-4. If the parsed result contains quality signals (sentiment positive or negative), write the most recent one to `profile.feedback` (overwrite any existing entry; if multiple, combine into a single detail string).
-5. Write the updated profile back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the built-in create tool).
+2. Determine the memory file represented by the replied-to subject. Resolve the period from the original subject or
+   conversation metadata, including localized date text. Never use the reply's sent date as the brief period; if the
+   original period cannot be resolved, report the correction as unapplied and do not write to a guessed file:
+   - `🌙` → `daily/daily-profile-{subject-date}.json`. If that daily was already purged, resolve the weekly summary
+     whose `week_of` contains the subject date by checking current, previous, then `weekly-archive/`.
+   - `☀️` → the latest daily profile strictly before the subject date (normally the previous workday, because AM does
+     not write a daily profile). If it was already purged, resolve the weekly summary containing that previous
+     workday.
+   - `📊` → find the summary with the matching `week_of` across `weekly-summary-current.json`,
+     `weekly-summary-prev.json`, and `weekly-archive/`.
+   - `📅` → find the summary with the matching `month` across `monthly-summary.json` and `monthly-archive/`.
+   - Self-memo → latest daily profile
+   Read that file via **dayarc-memory**. Also read the latest daily profile when the correction is `add_priority` or
+   contains a quality signal, because those fields live only in daily memory. If the subject's target memory does not
+   exist, report that the correction could not be applied to that period; do not silently write it to a different
+   summary.
+3. For each correction in the `parse_reply` output, apply the update to the selected memory file. The `action` field
+   (produced by parse_reply's NL analysis, not by the user) determines what to change:
+   - `mark_done` → for daily memory, set the matching `active_threads` item to `"done"` and remove matching
+     `priorities_today` / `unfinished` entries; for weekly memory, remove matching `stuck_items`; for monthly memory,
+     remove matching `persistently_stuck`. Also remove matching weekly `suggested_focus_next_week` /
+     `absorbed_from_previous` entries or monthly `outlook_next_month` / `absorbed_from_previous` entries. In every
+     memory type, find matching `impact_summaries` across title, situation, task, action, result, and impact and set
+     `status` to `"completed"`. Preserve an existing evidence-backed `result`; only fill it when absent, or append a
+     genuinely new concrete outcome from the reply. Do not replace it with generic parser text such as
+     `"User confirmed done"`.
+   - `remove` → remove matching `impact_summaries`. Also remove matching daily `priorities_today` / `unfinished`
+     entries and mark daily `active_threads` as `"dropped"`; remove matching weekly `themes`, `accomplishments`, and
+     `stuck_items`, `suggested_focus_next_week`, and `absorbed_from_previous`; or remove matching monthly
+     `time_allocation`, `accomplishments`, `persistently_stuck`, `outlook_next_month`, and
+     `absorbed_from_previous`.
+   - `add_priority` → update the latest daily profile regardless of replied-to brief type. Append a new entry to
+     `priorities_today`: `description` = correction target, `urgency` = `"🟡 soon"`, `source_breadcrumb` =
+     `"User reply"` (or `"Self-memo"` for self-sent emails).
+   - `correct` → find the matching item in the selected memory file, including `impact_summaries`. Update only the
+     field contradicted by the correction; do not overwrite verified source breadcrumbs.
+4. If the parsed result contains quality signals (sentiment positive or negative), write the most recent one to the
+   latest daily profile's `feedback` field (overwrite any existing entry; if multiple, combine into one detail
+   string).
+5. Write every modified memory file back via **dayarc-memory** (which MUST use PowerShell `Set-Content` — never the
+   built-in create tool).
 6. Set a flag: `replies_applied = true` with a summary of what changed.
 
 **0d. Acknowledgment.** If `replies_applied`, include at the top of the brief output:

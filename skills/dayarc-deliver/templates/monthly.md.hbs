@@ -2,29 +2,52 @@
 
 ## ⏱️ Time Allocation
 
-{{#if allocation.length}}
-{{#each allocation}}
-- **{{this.area}}** — {{pct this.share}}%
+{{#if time_allocation.length}}
+{{#each time_allocation}}
+- **{{this.area}}** — {{pct this.share}}% · {{this.trend}}
 {{/each}}
 {{else}}
 _No allocation data._
 {{/if}}
 
-## 📈 Trends
+## 🌟 Impact Highlights
 
-{{#if trends.length}}
-{{#each trends}}
+{{#if impact_summaries.length}}
+{{#each impact_summaries}}
+### {{this.title}}
+
+- **Status:** {{this.status}}
+- **Situation:** {{this.situation}}
+- **Task:** {{this.task}}
+- **Action:** {{this.action}}
+{{#if this.result}}- **Result:** {{this.result}}
+{{/if}}{{#if this.impact}}- **Impact:** {{this.impact}}
+{{/if}}- **Evidence:** {{#each this.source_breadcrumbs}}{{this}}{{#unless @last}} · {{/unless}}{{/each}}
+
+{{/each}}
+{{else}}
+{{#if accomplishments.length}}
+{{#each accomplishments}}
 - {{this}}
 {{/each}}
 {{else}}
-_No trends identified._
+_No impact highlights to report._
+{{/if}}
+{{/if}}
+
+{{#if persistently_stuck.length}}
+## 🚫 Persistently Stuck
+
+{{#each persistently_stuck}}
+- **{{this.weeks_stuck}} weeks** — {{this.description}}
+{{/each}}
 {{/if}}
 
 ## 📚 Learning Progress
 
 {{#if learning_progress.length}}
 {{#each learning_progress}}
-- **{{this.topic}}** — {{this.status}}
+- **{{this.topic}}** — {{this.trajectory}} · {{this.recommendation}}
 {{/each}}
 {{else}}
 _No learning tracked this month._
@@ -32,8 +55,8 @@ _No learning tracked this month._
 
 ## 🔮 Next Month Outlook
 
-{{#if next_month.length}}
-{{#each next_month}}
+{{#if outlook_next_month.length}}
+{{#each outlook_next_month}}
 - {{this}}
 {{/each}}
 {{else}}

@@ -36,6 +36,17 @@
       margin-top: 12px;
       margin-bottom: 4px;
     }
+    .impact-card {
+      background-color: #f7fafc;
+      border-left: 3px solid #805ad5;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      border-radius: 0 4px 4px 0;
+    }
+    .impact-title { font-weight: 700; color: #44337a; font-size: 15px; margin-bottom: 6px; }
+    .impact-line { font-size: 13px; color: #4a5568; margin-top: 3px; }
+    .impact-label { font-weight: 600; color: #2d3748; }
+    .impact-evidence { font-size: 11px; color: #718096; margin-top: 7px; }
     ul {
       margin: 4px 0 12px 0;
       padding-left: 20px;
@@ -91,8 +102,21 @@
   <p style="color:#a0aec0;font-size:13px;margin-bottom:12px;">⚠️ {{#each data_gaps}}{{this}}{{#unless @last}}; {{/unless}}{{/each}}</p>
   {{/if}}
 
-  <h2>📋 What I Did Today</h2>
-  {{#if what_i_did.length}}
+  <h2>🌟 Impact Highlights</h2>
+  {{#if impact_summaries.length}}
+    {{#each impact_summaries}}
+    <div class="impact-card">
+      <div class="impact-title">{{this.title}}</div>
+      <div class="impact-line"><span class="impact-label">Status:</span> {{this.status}}</div>
+      <div class="impact-line"><span class="impact-label">Situation:</span> {{this.situation}}</div>
+      <div class="impact-line"><span class="impact-label">Task:</span> {{this.task}}</div>
+      <div class="impact-line"><span class="impact-label">Action:</span> {{this.action}}</div>
+      {{#if this.result}}<div class="impact-line"><span class="impact-label">Result:</span> {{this.result}}</div>{{/if}}
+      {{#if this.impact}}<div class="impact-line"><span class="impact-label">Impact:</span> {{this.impact}}</div>{{/if}}
+      <div class="impact-evidence">Evidence: {{#each this.source_breadcrumbs}}{{this}}{{#unless @last}} · {{/unless}}{{/each}}</div>
+    </div>
+    {{/each}}
+  {{else if what_i_did.length}}
     {{#each what_i_did}}
     <div class="theme-label">{{this.theme}}{{#if this.total_effort}} ({{this.total_effort}}%){{/if}}</div>
     <ul>
@@ -108,7 +132,7 @@
     </ul>
     {{/each}}
   {{else}}
-    <p class="empty-note">No activities captured today.</p>
+    <p class="empty-note">No impact highlights captured today.</p>
   {{/if}}
 
   <h2>🎯 My Priorities Today</h2>

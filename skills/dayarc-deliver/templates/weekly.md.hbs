@@ -16,14 +16,29 @@
 _No themes identified this week._
 {{/if}}
 
-## ✅ Accomplishments
+## 🌟 Impact Highlights
 
+{{#if impact_summaries.length}}
+{{#each impact_summaries}}
+### {{this.title}}
+
+- **Status:** {{this.status}}
+- **Situation:** {{this.situation}}
+- **Task:** {{this.task}}
+- **Action:** {{this.action}}
+{{#if this.result}}- **Result:** {{this.result}}
+{{/if}}{{#if this.impact}}- **Impact:** {{this.impact}}
+{{/if}}- **Evidence:** {{#each this.source_breadcrumbs}}{{this}}{{#unless @last}} · {{/unless}}{{/each}}
+
+{{/each}}
+{{else}}
 {{#if accomplishments.length}}
 {{#each accomplishments}}
 - {{this}}
 {{/each}}
 {{else}}
-_No accomplishments to report._
+_No impact highlights to report._
+{{/if}}
 {{/if}}
 
 ## 🔄 Stuck / Recurring Carryovers
